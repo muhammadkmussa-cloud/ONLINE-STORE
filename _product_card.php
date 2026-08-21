@@ -25,6 +25,18 @@ $outOfStock = (int)($p['stock'] ?? 0) <= 0;
     <?php endif; ?>
   </a>
 
+  <form method="post" action="<?= e(shop_url('wishlist.php')) ?>" class="wishlist-card-form">
+    <?= csrf_field() ?>
+    <input type="hidden" name="action" value="toggle">
+    <input type="hidden" name="product_id" value="<?= (int)$p['id'] ?>">
+    <input type="hidden" name="return_to" value="<?= e($wishlistReturnTo ?? 'shop.php') ?>">
+    <button class="wishlist-card-btn <?= wishlist_has((int)$p['id']) ? 'is-saved' : '' ?>"
+            title="<?= wishlist_has((int)$p['id']) ? 'Remove from wishlist' : 'Save to wishlist' ?>"
+            aria-label="<?= wishlist_has((int)$p['id']) ? 'Remove from wishlist' : 'Save to wishlist' ?>">
+      <i class="bi bi-heart<?= wishlist_has((int)$p['id']) ? '-fill' : '' ?>"></i>
+    </button>
+  </form>
+
   <div class="product-body">
     <?php if (!empty($p['category_name'])): ?>
       <div class="product-cat"><?= e($p['category_name']) ?></div>

@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/includes/shop_bootstrap.php';
+require_once __DIR__ . '/includes/delivery.php';
 
 $pageTitle = 'Shopping Cart';
 
@@ -200,17 +201,31 @@ include __DIR__ . '/includes/shop_header.php';
                 <span>Subtotal</span>
                 <strong><?= e(price($cart['subtotal'])) ?></strong>
               </div>
-              <?php $shipping = (float) setting('shipping_fee', '0'); ?>
+              <?php
+                $cartPricing = delivery_pricing_settings();
+                $cartShipping = $cartPricing['ready'] ? null : false;
+              ?>
               <div class="d-flex justify-content-between mb-2">
-                <span>Shipping</span>
+                <span>Delivery fee</span>
                 <strong>
-                  <?= $shipping > 0 ? e(price($shipping)) : '<span class="text-success">Free</span>' ?>
+                  <?php if ($cartShipping === false): ?>
+                    <span class="text-danger">Delivery unavailable</span>
+                  <?php elseif ($cartShipping === null): ?>
+                    <span class="text-warning">Calculated at checkout</span>
+                  <?php elseif ($cartShipping > 0): ?>
+                    <?= e(price($cartShipping)) ?>
+                  <?php else: ?>
+                    <span class="text-success">Free</span>
+                  <?php endif; ?>
                 </strong>
               </div>
+              <?php if ($cartShipping === null): ?>
+                <div class="small text-muted mb-2">Choose Delivery or Store Pickup at checkout to see the final fee.</div>
+              <?php endif; ?>
               <hr>
               <div class="d-flex justify-content-between fs-5">
-                <span>Total</span>
-                <strong><?= e(price($cart['subtotal'] + $shipping)) ?></strong>
+                <span>Total before delivery</span>
+                <strong><?= e(price($cart['subtotal'] + ($cartShipping ?? 0))) ?></strong>
               </div>
 
               <a href="<?= e(shop_url('checkout.php')) ?>" class="btn btn-primary w-100 mt-3">

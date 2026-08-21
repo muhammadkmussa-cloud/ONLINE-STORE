@@ -182,3 +182,141 @@ function generate_order_number(): string
     }
     return $prefix . str_pad((string)$nextNum, 4, '0', STR_PAD_LEFT);
 }
+
+// ----------------------------------------------------------------
+// Wishlist (session-based, available to guests)
+// Wishlist shape: $_SESSION['wishlist'] = [productId, productId, ...]
+// ----------------------------------------------------------------
+
+/** Return a clean list of product IDs saved in the current visitor's wishlist. */
+function wishlist_raw(): array
+{
+    $raw = $_SESSION['wishlist'] ?? [];
+    if (!is_array($raw)) $raw = [];
+
+    $ids = [];
+    foreach ($raw as $id) {
+        $id = (int)$id;
+        if ($id > 0 && !in_array($id, $ids, true)) $ids[] = $id;
+    }
+    $_SESSION['wishlist'] = $ids;
+    return $ids;
+}
+
+function wishlist_has(int $productId): bool
+{
+    return in_array($productId, wishlist_raw(), true);
+}
+
+function wishlist_add(int $productId): void
+{
+    $ids = wishlist_raw();
+    if ($productId > 0 && !in_array($productId, $ids, true)) {
+        $ids[] = $productId;
+        $_SESSION['wishlist'] = $ids;
+    }
+}
+
+function wishlist_remove(int $productId): void
+{
+    $_SESSION['wishlist'] = array_values(array_filter(
+        wishlist_raw(),
+        static function ($id) use ($productId): bool { return (int)$id !== $productId; }
+    ));
+}
+
+function wishlist_clear(): void
+{
+    unset($_SESSION['wishlist']);
+}
+
+function wishlist_count(): int
+{
+    return count(wishlist_raw());
+}
+
+/** Hydrate saved wishlist IDs with currently active products, preserving save order. */
+function wishlist_load(): array
+{
+    $ids = wishlist_raw();
+    if (!$ids) return [];
+
+    $placeholders = implode(',', array_fill(0, count($ids), '?'));
+    try {
+        $stmt = db()->prepare(
+            "SELECT p.*, c.name AS category_name, c.slug AS category_slug
+             FROM products p
+             LEFT JOIN categories c ON c.id = p.category_id
+             WHERE p.id IN ($placeholders) AND p.status = 'active'"
+        );
+        $stmt->execute($ids);
+        $rows = $stmt->fetchAll();
+    } catch (Throwable $e) {
+        return [];
+    }
+
+    $byId = [];
+    foreach ($rows as $row) $byId[(int)$row['id']] = $row;
+
+    $products = [];
+    $validIds = [];
+    foreach ($ids as $id) {
+        if (isset($byId[$id])) {
+            $products[] = $byId[$id];
+            $validIds[] = $id;
+        }
+    }
+    $_SESSION['wishlist'] = $validIds;
+    return $products;
+}
+
+// ----------------------------------------------------------------
+// Recently viewed products (session-based)
+// ----------------------------------------------------------------
+
+function remember_recent_product(int $productId, int $limit = 6): void
+{
+    if ($productId < 1) return;
+    $ids = array_values(array_filter(
+        $_SESSION['recently_viewed'] ?? [],
+        static function ($id): bool { return (int)$id > 0; }
+    ));
+    $ids = array_values(array_filter($ids, static function ($id) use ($productId): bool {
+        return (int)$id !== $productId;
+    }));
+    array_unshift($ids, $productId);
+    $_SESSION['recently_viewed'] = array_slice($ids, 0, max(1, $limit));
+}
+
+function recently_viewed_products(int $limit = 6): array
+{
+    $ids = $_SESSION['recently_viewed'] ?? [];
+    if (!is_array($ids)) return [];
+    $ids = array_values(array_filter(array_map('intval', $ids), static function ($id): bool {
+        return $id > 0;
+    }));
+    $ids = array_slice($ids, 0, max(1, $limit));
+    if (!$ids) return [];
+
+    $placeholders = implode(',', array_fill(0, count($ids), '?'));
+    try {
+        $stmt = db()->prepare(
+            "SELECT p.*, c.name AS category_name, c.slug AS category_slug
+             FROM products p
+             LEFT JOIN categories c ON c.id = p.category_id
+             WHERE p.id IN ($placeholders) AND p.status = 'active'"
+        );
+        $stmt->execute($ids);
+        $rows = $stmt->fetchAll();
+    } catch (Throwable $e) {
+        return [];
+    }
+
+    $byId = [];
+    foreach ($rows as $row) $byId[(int)$row['id']] = $row;
+    $products = [];
+    foreach ($ids as $id) {
+        if (isset($byId[$id])) $products[] = $byId[$id];
+    }
+    return $products;
+}

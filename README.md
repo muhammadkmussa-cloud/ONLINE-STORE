@@ -49,10 +49,24 @@ Then add to this README:
 - Product list with search, category filter, sort, pagination
 - Product detail with related products
 - Session-based shopping cart with quantity management and per-row removal
+- Guest wishlist with save/remove/clear actions
+- Recently viewed products on product detail pages
 - Checkout that creates an order in a single DB transaction (also decrements
   stock atomically)
+- Optional M-Pesa Daraja STK Push checkout with server-side callbacks,
+  verification, idempotency, and payment status tracking
+- Admin-only M-Pesa refund/reversal workflow with asynchronous callbacks,
+  partial refunds, idempotency, and auditable history
+- Global payment-method management: enable/disable M-Pesa and Payment on
+  Delivery; Bank Transfer remains disabled as a future method
+- Admin-managed Delivery Driver accounts with a separate restricted `/delivery/`
+  portal, assignments, status updates, and login throttling
 - Order confirmation page
 - Order tracking page — lookup by order number + email
+- Product reviews with star ratings and admin moderation
+- Secure multiple product-image galleries with primary-image selection, ordering, and thumbnails
+- Delivery or Store Pickup checkout with optional browser geolocation sharing,
+  server-side coordinate validation, admin-only map access, and historical snapshots
 
 **Admin panel** (everything under `/admin/`)
 
@@ -60,9 +74,12 @@ Then add to this README:
 - Dashboard: order stats, revenue, pending count, low-stock alerts,
   recent orders, recent activity, Chart.js 7-day trend
 - Orders: filter by status / date / search, full detail view, inline
-  status updates
+  status updates, CSV export, M-Pesa payment status / receipt details, and
+  admin-only refund/reversal history
 - Products: image upload, SKU, regular + sale price, stock tracking,
   featured flag, status (active / draft / inactive)
+- Reviews: search and filter submissions, approve/reject reviews, and delete
+  unwanted content
 - Categories: CRUD with auto-generated slugs
 - Settings: currency, items per page, shipping fee, contact email,
   about copy
@@ -70,15 +87,15 @@ Then add to this README:
 - Profile + password change
 - Light/dark theme toggle (persisted in `localStorage`)
 
-There's no payment gateway integration — checkout supports Cash on Delivery
-and Bank Transfer. Adding Stripe / PayPal is a few lines (see *Extending*
-below).
+Checkout supports Cash on Delivery and Bank Transfer, plus an optional
+M-Pesa Daraja STK Push integration. Other gateways can be added using the same
+payment-attempt pattern (see *Extending* below).
 
 ## Stack
 
 | Layer    | Used                                                       |
 | -------- | ---------------------------------------------------------- |
-| Backend  | PHP 7.4+, PDO                                              |
+| Backend  | PHP 7.4+, PDO, cURL                                        |
 | Database | MySQL 5.7+ / MariaDB 10.x                                  |
 | Frontend | Bootstrap 5.3, Bootstrap Icons, Chart.js (all via CDN)     |
 | Server   | Anything that runs PHP. Tested on XAMPP / Apache 2.4.      |
@@ -110,10 +127,10 @@ For XAMPP on macOS / Linux / Windows:
    define('DB_PASS', 'your-password');   // empty string is fine for fresh XAMPP
    ```
 
-4. Open the installer in a browser:
+4. Set a temporary random `INSTALL_TOKEN` in the server environment, then open:
 
    ```
-   http://localhost/bilal-store/admin/install.php
+   http://localhost/bilal-store/admin/install.php?token=YOUR_INSTALL_TOKEN
    ```
 
    Fill in admin name / email / password and submit. The installer creates
@@ -122,19 +139,34 @@ For XAMPP on macOS / Linux / Windows:
 5. **Delete `admin/install.php`.** It's a one-time bootstrap script and
    shouldn't sit in production.
 
-6. Run the e-commerce migration:
+6. Set a temporary random `MIGRATION_TOKEN` in the server environment, then open:
 
    ```
-   http://localhost/bilal-store/admin/migrate.php
+   http://localhost/bilal-store/admin/migrate.php?token=YOUR_MIGRATION_TOKEN
    ```
 
-   Click *Apply migration*. This adds the `products`, `categories`,
-   `orders`, and `order_items` tables. Delete the file when done.
+   Click *Apply migration*. This adds the `products`, `categories`, `orders`,
+   `order_items`, `product_reviews`, `payments`, `mpesa_refunds`,
+   `order_delivery_locations`, `order_delivery_pricing`, `order_pickup_snapshots`,
+   `driver_login_attempts`, `admin_login_attempts`, `delivery_assignments`,
+   `delivery_status_history`, `product_images`, `order_donations`, and
+   `order_access_tokens` tables. Delete the file when done.
 
-7. You're up:
+7. Optional: configure M-Pesa. Copy `.env.example` to your deployment secret
+   store and provide the Daraja credentials, a long random callback token, and
+   a public **HTTPS** `MPESA_CALLBACK_URL` pointing to `mpesa_callback.php`.
+   Use `MPESA_TRANSACTION_TYPE=CustomerPayBillOnline` for a PayBill or
+   `CustomerBuyGoodsOnline` for a Till, with `MPESA_PARTY_B` set when needed.
+   The PHP cURL extension must be enabled. In admin → Settings, set the
+   currency code to `KES` and enable *Show M-Pesa at checkout* only after the
+   environment checks pass. Use `MPESA_ENVIRONMENT=sandbox` for testing and
+   `production` only with approved production Daraja credentials.
+
+8. You're up:
 
    - Storefront: `http://localhost/bilal-store/`
    - Admin: `http://localhost/bilal-store/admin/login.php`
+   - M-Pesa callback: `https://your-public-domain.example/mpesa_callback.php?token=…`
 
 If you skip step 6 the dashboard will show a warning and still load — it
 just won't have any e-commerce data to show.
@@ -153,9 +185,19 @@ bilal-store/
 ├── product.php                  # Product detail
 ├── category.php                 # Category page
 ├── cart.php                     # Shopping cart
+├── wishlist.php                 # Guest wishlist
 ├── checkout.php                 # Checkout form + order create
 ├── order_confirmation.php       # Thank-you page
+├── mpesa_wait.php               # M-Pesa payment status page
+├── mpesa_callback.php           # Daraja STK callback endpoint
+├── mpesa_reversal_callback.php  # Daraja reversal callback endpoint
 ├── track.php                    # Order tracking lookup
+├── delivery/
+│   ├── login.php                # Driver login
+│   ├── index.php                # Assigned delivery dashboard
+│   ├── order.php                # Own assigned delivery detail
+│   ├── logout.php
+│   └── includes/                # Driver-only auth and portal shell
 ├── _product_card.php            # Reusable card partial
 │
 ├── admin/
@@ -165,6 +207,8 @@ bilal-store/
 │   ├── dashboard.php
 │   ├── orders.php
 │   ├── order_view.php
+│   ├── reviews.php
+│   ├── drivers.php
 │   ├── products.php
 │   ├── product_form.php
 │   ├── categories.php
@@ -183,6 +227,9 @@ bilal-store/
 ├── includes/
 │   ├── functions.php            # Shared: e(), price(), redirect(), CSRF, …
 │   ├── shop_bootstrap.php       # Storefront helpers + cart functions
+│   ├── payment_methods.php      # Global checkout payment configuration
+│   ├── delivery.php             # Delivery/pickup and location helpers
+│   ├── mpesa.php                # Daraja client + callback/payment helpers
 │   ├── shop_header.php
 │   └── shop_footer.php
 │
@@ -192,7 +239,8 @@ bilal-store/
 │
 ├── sql/
 │   ├── schema.sql               # Initial schema
-│   └── migrations.sql           # Adds e-commerce tables (idempotent)
+│   └── migrations.sql           # Adds e-commerce/payment tables (idempotent)
+├── .env.example                 # Server-side Daraja configuration template
 │
 └── assets/
     ├── css/
@@ -217,8 +265,8 @@ generally follows the same pattern:
 5. `include 'includes/.../footer.php';`
 
 Storefront pages pull `includes/shop_bootstrap.php`, which sets up the
-shop helpers (`shop_url()`, `cart_load()`, `product_effective_price()`,
-`generate_order_number()`, …). Admin pages pull
+shop helpers (`shop_url()`, `cart_load()`, `wishlist_load()`,
+`product_effective_price()`, `generate_order_number()`, …). Admin pages pull
 `admin/includes/auth.php`, which calls `require_login()` /
 `require_role(...)` and exposes `current_user()`.
 
@@ -253,9 +301,121 @@ admin → Settings. Defaults shipped:
 | `currency_symbol` | What gets prefixed to prices (`$`, `Rs`, …)        |
 | `shipping_fee`    | Flat fee added at checkout. Set `0.00` for free.   |
 | `items_per_page`  | Pagination size for product/category/order lists   |
+| `mpesa_enabled`         | Admin toggle for the optional M-Pesa checkout       |
+| `cod_enabled`           | Admin toggle for Payment on Delivery                 |
+| `bank_transfer_enabled` | Reserved future setting; current checkout keeps it off |
+| `store_pickup_instructions` | Instructions shown for Store Pickup              |
+| `store_latitude`            | Store latitude used for distance pricing           |
+| `store_longitude`           | Store longitude used for distance pricing          |
+| `delivery_price_per_km`     | Delivery rate used for distance pricing            |
+
+Payment method changes are audited in `activity_log` and apply to new
+checkouts immediately. Existing orders keep their saved `payment_method`.
 
 Read with `setting('shipping_fee', '0')`. Write through the settings page,
 or directly via SQL.
+
+## M-Pesa / Daraja integration
+
+The optional M-Pesa method uses Safaricom Daraja's Lipa na M-Pesa Online
+(STK Push) flow. `includes/mpesa.php` uses PHP cURL to request a server-side
+OAuth token, initiate the STK prompt, and process the HTTPS callback at
+`mpesa_callback.php`.
+
+Security and payment-state rules:
+
+- Consumer key, consumer secret, shortcode, passkey, callback URL, and callback
+  token are read from environment variables; they are never saved in `settings`.
+- The checkout option is shown only when an admin enables it, the store currency
+  is `KES`, cURL is available, and all required environment values pass checks.
+- Orders reserve stock and create an `initiated` payment row before the external
+  request. A unique checkout idempotency key prevents a double-submit from
+  creating a second order or STK prompt.
+- Only a valid server callback with matching checkout ID, amount, phone number,
+  and a new provider receipt can transition a payment to `successful`.
+- Failed, cancelled, or expired callbacks release the reserved stock once and
+  cancel the still-pending order. A browser page never marks a payment as paid.
+
+For production, use a public HTTPS callback URL, approved production Daraja
+credentials, a strong random callback token, server logs/monitoring, and a
+reconciliation process for payments whose callback is delayed.
+
+### Refunds and reversals
+
+Admin users can request full or partial reversals from an eligible successful
+M-Pesa order. Reversal credentials are separate environment values:
+`MPESA_INITIATOR_NAME`, an encrypted `MPESA_SECURITY_CREDENTIAL`,
+`MPESA_REVERSAL_RESULT_URL`, and `MPESA_REVERSAL_TIMEOUT_URL`. The request is
+stored in `mpesa_refunds` before the provider call, claimed atomically to avoid
+duplicate requests, and only becomes `refunded` after a verified reversal
+callback. Provider/network uncertainty is recorded as `unknown` or
+`requires_review`, never as a successful refund.
+
+### Delivery locations
+
+Checkout supports Delivery and Store Pickup. Delivery customers may use the
+browser Geolocation API; denial, timeout, and unavailable-location errors fall
+back to the manually entered address. Coordinates are range-validated on the
+server and stored in the `order_delivery_locations` snapshot table. Pickup
+address and instructions are preserved in `order_pickup_snapshots`. Store
+Pickup never requests or stores coordinates. Public confirmation/tracking pages
+show the fulfillment method but not coordinates; only administrators can open
+the location map from the admin order view.
+
+### Distance-based delivery pricing
+
+Set `store_latitude`, `store_longitude`, and `delivery_price_per_km` in
+Admin → Settings to activate server-side distance pricing. The checkout uses
+the Haversine calculation between the store and shared customer coordinates.
+The actual distance is rounded up with `ceil(actual_distance_km)` for billing,
+then the billable distance, rate, currency, and fee are stored in the immutable
+`order_delivery_distance_pricing` snapshot. Store Pickup always has a zero fee. If the
+store coordinates or rate are not configured, new Delivery checkout is blocked
+with a clear configuration message; the old `shipping_fee` is not used as a
+silent fallback.
+
+### Delivery driver portal
+
+Admins create Delivery Driver accounts from Admin → Delivery drivers. Drivers do
+not self-register and cannot access `/admin/`; they sign in at `/delivery/login.php`.
+Only active assignments are visible in the driver portal. Driver views expose
+only the assigned customer, phone, delivery address, package contents,
+payment status, relevant notes, and authorized map location—never payment
+controls, refund controls, product, settings, or other-driver data. Drivers can
+progress deliveries through Assigned, Picked Up, Out for Delivery, Arrived,
+Delivered, and Unable to Deliver. Login failures are throttled and driver
+account/status changes are audited.
+
+## Automated regression tests
+
+Run the dependency-free critical business/security suite against a dedicated
+throwaway database:
+
+```bash
+TEST_DB_NAME=php_admin_panel_test php tests/run.php
+```
+
+The suite never calls real M-Pesa endpoints and drops only its dedicated test
+database. See [`tests/README.md`](tests/README.md) for configuration.
+
+## cPanel deployment
+
+See [`docs/cpanel-deployment.md`](docs/cpanel-deployment.md) for the complete
+cPanel/PHP/MySQL setup, environment, one-time migration, HTTPS callback, backup,
+and smoke-test checklist.
+
+## Production hardening
+
+Set `APP_ENV=production` and provide database credentials through the server
+environment. The production configuration enables secure HttpOnly SameSite
+cookies, strict session mode, security headers, and hides PHP errors. The
+one-time installer and migration runner require separate random environment
+tokens and should be deleted after use. Build cPanel packages with
+`scripts/package-production.sh`; it excludes `.git`, Git metadata, local secrets,
+private keys, logs, caches, and setup utilities. New public order links use strong
+access tokens instead of predictable order numbers alone. Admin and driver
+login attempts are throttled, logout is POST-only with CSRF, and all privileged
+payment, refund, delivery, donation, driver, and image actions are audited.
 
 ## Default credentials
 
@@ -312,19 +472,11 @@ Then add a link in `admin/includes/sidebar.php`.
 `sql/migrations.sql` (always use `IF NOT EXISTS` so re-running is safe),
 then run `admin/migrate.php` from the browser.
 
-**Plug in a real payment gateway.** The order is created in `checkout.php`
-inside a transaction:
-
-```php
-$pdo->beginTransaction();
-// INSERT INTO orders ...
-// INSERT INTO order_items ...
-// UPDATE products SET stock = stock - X ...
-$pdo->commit();
-```
-
-Add your gateway call between the `INSERT`s and the `commit`. If the
-gateway returns an error, throw and the rollback handles the rest.
+**Plug in another payment gateway.** Follow the M-Pesa pattern in
+`checkout.php`: create the order, line-item snapshots, stock reservation, and
+payment attempt in one transaction; commit; then call the provider. Store the
+provider reference and transition the payment only from a server-side callback
+or verification response. Do not mark an order paid from browser input.
 
 **i18n.** Strings are inline. There's no gettext or translation table. If
 you need multiple languages, the cleanest path is to wrap user-facing

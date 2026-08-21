@@ -16,7 +16,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!$email || !$password) {
         $errors[] = 'Email and password are required.';
     } elseif (!attempt_login($email, $password)) {
-        $errors[] = 'Invalid credentials, or your account is disabled.';
+        $errors[] = ($_SESSION['_admin_login_status'] ?? '') === 'rate_limited'
+            ? 'Too many unsuccessful attempts. Please wait 15 minutes and try again.'
+            : 'Invalid credentials, or your account is disabled.';
     } else {
         flash('success', 'Welcome back, ' . current_user()['name'] . '!');
         admin_redirect('dashboard.php');

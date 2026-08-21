@@ -36,6 +36,12 @@ $current = basename($_SERVER['PHP_SELF'] ?? '');
 
       <!-- Always-visible cart + mobile toggle (right side on small screens) -->
       <div class="d-flex align-items-center gap-2 order-lg-last">
+        <a href="<?= e(shop_url('wishlist.php')) ?>" class="wishlist-link" title="Wishlist">
+          <i class="bi bi-heart"></i>
+          <?php $wishlistCount = wishlist_count(); if ($wishlistCount > 0): ?>
+            <span class="cart-count"><?= $wishlistCount ?></span>
+          <?php endif; ?>
+        </a>
         <a href="<?= e(shop_url('cart.php')) ?>" class="cart-link" title="Cart">
           <i class="bi bi-bag"></i>
           <?php $cnt = cart_count(); if ($cnt > 0): ?>

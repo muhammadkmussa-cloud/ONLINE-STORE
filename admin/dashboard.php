@@ -70,13 +70,25 @@ try {
 try {
     $totalOrders   = (int) db()->query('SELECT COUNT(*) FROM orders')->fetchColumn();
     $pendingOrders = (int) db()->query("SELECT COUNT(*) FROM orders WHERE status = 'pending'")->fetchColumn();
-    $totalRevenue  = (float) db()->query(
-        "SELECT COALESCE(SUM(total), 0) FROM orders WHERE status NOT IN ('cancelled')"
-    )->fetchColumn();
-    $todayRevenue  = (float) db()->query(
-        "SELECT COALESCE(SUM(total), 0) FROM orders
-         WHERE status NOT IN ('cancelled') AND DATE(created_at) = CURDATE()"
-    )->fetchColumn();
+    // M-Pesa orders contribute to revenue only after a successful server-side
+    // payment transition. COD and bank-transfer orders retain the existing
+    // order-based revenue behavior.
+    $revenueSql =
+        "SELECT COALESCE(SUM(
+            CASE WHEN o.payment_method = 'mpesa'
+                      AND NOT EXISTS (
+                          SELECT 1 FROM payments p
+                          WHERE p.order_id = o.id
+                            AND p.provider = 'mpesa'
+                            AND p.status = 'successful'
+                      )
+                 THEN 0 ELSE o.total END
+         ), 0)
+         FROM orders o
+         WHERE o.status NOT IN ('cancelled')";
+    $totalRevenue = (float) db()->query($revenueSql)->fetchColumn();
+    $todayRevenue = (float) db()->query($revenueSql . " AND DATE(o.created_at) = CURDATE()")
+        ->fetchColumn();
     $recentOrders  = db()->query(
         "SELECT id, order_number, customer_name, total, status, created_at
          FROM orders ORDER BY created_at DESC LIMIT 6"

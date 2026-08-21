@@ -1,4 +1,5 @@
 # Allow images, deny PHP execution.
+Options -ExecCGI
 <FilesMatch "\.(php|phtml|php3|php4|php5|php7|phar)$">
     <IfModule mod_authz_core.c>
         Require all denied

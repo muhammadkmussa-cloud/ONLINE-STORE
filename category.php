@@ -45,13 +45,23 @@ $perPage  = 12;
 $page     = max(1, (int)($_GET['page'] ?? 1));
 $offset   = ($page - 1) * $perPage;
 
-$orderSql = match ($sort) {
-    'price_asc'  => 'COALESCE(sale_price, price) ASC',
-    'price_desc' => 'COALESCE(sale_price, price) DESC',
-    'name_asc'   => 'name ASC',
-    'name_desc'  => 'name DESC',
-    default      => 'created_at DESC',
-};
+switch ($sort) {
+    case 'price_asc':
+        $orderSql = 'COALESCE(sale_price, price) ASC';
+        break;
+    case 'price_desc':
+        $orderSql = 'COALESCE(sale_price, price) DESC';
+        break;
+    case 'name_asc':
+        $orderSql = 'name ASC';
+        break;
+    case 'name_desc':
+        $orderSql = 'name DESC';
+        break;
+    default:
+        $orderSql = 'created_at DESC';
+        break;
+}
 
 try {
     $stmt = db()->prepare(

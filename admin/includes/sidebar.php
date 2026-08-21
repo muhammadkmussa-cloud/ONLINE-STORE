@@ -53,12 +53,35 @@ $current = basename($_SERVER['PHP_SELF'] ?? '');
         <i class="bi bi-tags"></i><span>Categories</span>
       </a>
 
+      <a href="<?= e(admin_url('reviews.php')) ?>"
+         class="nav-link <?= active_if($current === 'reviews.php') ?>">
+        <i class="bi bi-chat-square-text"></i><span>Reviews</span>
+        <?php
+          try {
+            $pendingReviews = (int)db()->query(
+              "SELECT COUNT(*) FROM product_reviews WHERE status = 'pending'"
+            )->fetchColumn();
+          } catch (Throwable $e) { $pendingReviews = 0; }
+        ?>
+        <?php if ($pendingReviews > 0): ?>
+          <span class="badge text-bg-warning ms-auto"><?= $pendingReviews ?></span>
+        <?php endif; ?>
+      </a>
+
     <?php endif; ?>
 
     <a href="<?= e(admin_url('activity.php')) ?>"
        class="nav-link <?= active_if($current === 'activity.php') ?>">
       <i class="bi bi-clock-history"></i><span>Activity log</span>
     </a>
+
+    <?php if (has_role('admin')): ?>
+      <div class="nav-section">Operations</div>
+      <a href="<?= e(admin_url('drivers.php')) ?>"
+         class="nav-link <?= active_if($current === 'drivers.php') ?>">
+        <i class="bi bi-truck"></i><span>Delivery drivers</span>
+      </a>
+    <?php endif; ?>
 
     <div class="nav-section">Account</div>
 
@@ -74,8 +97,11 @@ $current = basename($_SERVER['PHP_SELF'] ?? '');
       </a>
     <?php endif; ?>
 
-    <a href="<?= e(admin_url('logout.php')) ?>" class="nav-link text-danger">
-      <i class="bi bi-box-arrow-right"></i><span>Logout</span>
-    </a>
+    <form method="post" action="<?= e(admin_url('logout.php')) ?>" class="m-0">
+      <?= csrf_field() ?>
+      <button type="submit" class="nav-link text-danger border-0 bg-transparent w-100 text-start">
+        <i class="bi bi-box-arrow-right"></i><span>Logout</span>
+      </button>
+    </form>
   </nav>
 </aside>

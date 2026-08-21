@@ -20,6 +20,7 @@
           <li><a href="<?= e(shop_url('shop.php')) ?>">All products</a></li>
           <li><a href="<?= e(shop_url('shop.php?featured=1')) ?>">Featured</a></li>
           <li><a href="<?= e(shop_url('shop.php?sort=newest')) ?>">New arrivals</a></li>
+          <li><a href="<?= e(shop_url('wishlist.php')) ?>">Wishlist</a></li>
           <li><a href="<?= e(shop_url('cart.php')) ?>">Cart</a></li>
           <li><a href="<?= e(shop_url('track.php')) ?>">Track order</a></li>
         </ul>

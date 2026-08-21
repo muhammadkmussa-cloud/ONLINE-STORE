@@ -17,6 +17,12 @@ Thumbs.db
 error_log
 access_log
 
+# Local production packages and test reports
+*.zip
+*.tar.gz
+production-packages/
+.phpunit.result.cache
+
 # User uploads — these are runtime, not source.
 # Keep the folder structure with .gitkeep files.
 assets/uploads/*

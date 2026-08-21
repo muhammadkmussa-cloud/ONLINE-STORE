@@ -1,5 +1,7 @@
 <?php
 require_once __DIR__ . '/includes/auth.php';
+require_once __DIR__ . '/../includes/payment_methods.php';
+require_once __DIR__ . '/../includes/delivery.php';
 require_role('admin', 'editor');
 
 $pageTitle = 'Orders';
@@ -15,9 +17,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt = db()->prepare('SELECT order_number FROM orders WHERE id = :id');
         $stmt->execute([':id' => $id]);
         if ($o = $stmt->fetch()) {
-            db()->prepare('DELETE FROM orders WHERE id = :id')->execute([':id' => $id]);
-            log_activity('order.delete', 'Deleted order ' . $o['order_number']);
-            flash('success', 'Order ' . $o['order_number'] . ' deleted.');
+            $paymentCount = 0;
+            try {
+                $paymentStmt = db()->prepare('SELECT COUNT(*) FROM payments WHERE order_id = :id');
+                $paymentStmt->execute([':id' => $id]);
+                $paymentCount = (int)$paymentStmt->fetchColumn();
+            } catch (Throwable $ignored) {}
+
+            if ($paymentCount > 0) {
+                flash('danger', 'This order cannot be deleted because its M-Pesa payment history must be preserved.');
+            } else {
+                db()->prepare('DELETE FROM orders WHERE id = :id')->execute([':id' => $id]);
+                log_activity('order.delete', 'Deleted order ' . $o['order_number']);
+                flash('success', 'Order ' . $o['order_number'] . ' deleted.');
+            }
         } else {
             flash('warning', 'Order not found.');
         }
@@ -30,6 +43,8 @@ $search  = trim((string)($_GET['q']      ?? ''));
 $status  = trim((string)($_GET['status'] ?? ''));
 $dateFrom = trim((string)($_GET['from']  ?? ''));
 $dateTo   = trim((string)($_GET['to']    ?? ''));
+$fulfillment = trim((string)($_GET['fulfillment'] ?? ''));
+$deliveryStatus = trim((string)($_GET['delivery_status'] ?? ''));
 $perPage = max(5, (int) setting('items_per_page', '10'));
 $page    = max(1, (int)($_GET['page'] ?? 1));
 $offset  = ($page - 1) * $perPage;
@@ -55,7 +70,80 @@ if ($dateTo !== '' && preg_match('/^\d{4}-\d{2}-\d{2}$/', $dateTo)) {
     $where[] = 'created_at <= :dt';
     $params[':dt'] = $dateTo . ' 23:59:59';
 }
+if (in_array($fulfillment, ['delivery', 'pickup'], true)) {
+    $where[] = 'id IN (SELECT order_id FROM order_delivery_locations WHERE delivery_method = :fulfillment)';
+    $params[':fulfillment'] = $fulfillment;
+}
+$allowedDeliveryStatuses = array_keys(delivery_status_definitions());
+if (in_array($deliveryStatus, $allowedDeliveryStatuses, true)) {
+    $where[] = "id IN (
+        SELECT da_filter.order_id FROM delivery_assignments da_filter
+        WHERE COALESCE(
+            (SELECT h_filter.status FROM delivery_status_history h_filter
+             WHERE h_filter.assignment_id = da_filter.id ORDER BY h_filter.id DESC LIMIT 1),
+            CASE WHEN da_filter.status = 'completed' THEN 'delivered' ELSE 'assigned' END
+        ) = :delivery_status
+    )";
+    $params[':delivery_status'] = $deliveryStatus;
+}
 $whereSql = $where ? ('WHERE ' . implode(' AND ', $where)) : '';
+
+// Export the currently filtered order set as a spreadsheet-friendly CSV.
+if ($_SERVER['REQUEST_METHOD'] === 'GET' && ($_GET['export'] ?? '') === 'csv') {
+    $stmt = db()->prepare(
+        "SELECT o.order_number, o.customer_name, o.customer_email, o.customer_phone,
+                o.subtotal, o.shipping_fee, o.total, o.payment_method, o.status, o.created_at,
+                (SELECT p.status FROM payments p
+                 WHERE p.order_id = o.id AND p.provider = 'mpesa'
+                 ORDER BY p.id DESC LIMIT 1) AS payment_status,
+                (SELECT p.provider_transaction_id FROM payments p
+                 WHERE p.order_id = o.id AND p.provider = 'mpesa'
+                 ORDER BY p.id DESC LIMIT 1) AS mpesa_receipt,
+                (SELECT dl.delivery_method FROM order_delivery_locations dl
+                 WHERE dl.order_id = o.id LIMIT 1) AS delivery_method,
+                (SELECT COALESCE(
+                    (SELECT h.status FROM delivery_status_history h
+                     WHERE h.assignment_id = da.id ORDER BY h.id DESC LIMIT 1),
+                    CASE WHEN da.status = 'completed' THEN 'delivered' ELSE 'assigned' END
+                 )
+                 FROM delivery_assignments da
+                 WHERE da.order_id = o.id ORDER BY da.id DESC LIMIT 1) AS delivery_status
+         FROM orders o
+         $whereSql
+         ORDER BY o.created_at DESC"
+    );
+    $stmt->execute($params);
+    $exportRows = $stmt->fetchAll();
+
+    header('Content-Type: text/csv; charset=utf-8');
+    header('Content-Disposition: attachment; filename="orders-' . date('Y-m-d') . '.csv"');
+    $output = fopen('php://output', 'w');
+    fputcsv($output, [
+        'Order number', 'Customer name', 'Customer email', 'Customer phone',
+        'Subtotal', 'Shipping fee', 'Total', 'Payment method', 'Status', 'Placed at',
+        'Payment status', 'M-Pesa receipt', 'Delivery method', 'Delivery status'
+    ]);
+    foreach ($exportRows as $exportRow) {
+        fputcsv($output, [
+            $exportRow['order_number'],
+            $exportRow['customer_name'],
+            $exportRow['customer_email'],
+            $exportRow['customer_phone'],
+            $exportRow['subtotal'],
+            $exportRow['shipping_fee'],
+            $exportRow['total'],
+            $exportRow['payment_method'],
+            $exportRow['status'],
+            $exportRow['created_at'],
+            $exportRow['payment_status'],
+            $exportRow['mpesa_receipt'],
+            delivery_method_label($exportRow['delivery_method'] ?: 'delivery'),
+            $exportRow['delivery_status'] ? delivery_status_label($exportRow['delivery_status']) : 'Unassigned',
+        ]);
+    }
+    fclose($output);
+    exit;
+}
 
 $stmt = db()->prepare("SELECT COUNT(*) FROM orders $whereSql");
 $stmt->execute($params);
@@ -63,7 +151,20 @@ $total = (int) $stmt->fetchColumn();
 $pages = max(1, (int) ceil($total / $perPage));
 
 $stmt = db()->prepare(
-    "SELECT o.*, (SELECT COUNT(*) FROM order_items WHERE order_id = o.id) AS item_count
+    "SELECT o.*,
+             (SELECT COUNT(*) FROM order_items WHERE order_id = o.id) AS item_count,
+             (SELECT p.status FROM payments p
+              WHERE p.order_id = o.id AND p.provider = 'mpesa'
+              ORDER BY p.id DESC LIMIT 1) AS payment_status,
+             (SELECT dl.delivery_method FROM order_delivery_locations dl
+              WHERE dl.order_id = o.id LIMIT 1) AS delivery_method,
+             (SELECT COALESCE(
+                 (SELECT h.status FROM delivery_status_history h
+                  WHERE h.assignment_id = da.id ORDER BY h.id DESC LIMIT 1),
+                 CASE WHEN da.status = 'completed' THEN 'delivered' ELSE 'assigned' END
+              )
+              FROM delivery_assignments da
+              WHERE da.order_id = o.id ORDER BY da.id DESC LIMIT 1) AS delivery_status
      FROM orders o
      $whereSql
      ORDER BY o.created_at DESC
@@ -78,10 +179,20 @@ $rows = $stmt->fetchAll();
 // Headline metrics for the toolbar.
 $stats = db()->query(
     "SELECT
-       COUNT(*)                                     AS total_orders,
-       SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) AS pending_orders,
-       SUM(CASE WHEN status NOT IN ('cancelled') THEN total ELSE 0 END) AS revenue
-     FROM orders"
+       COUNT(*) AS total_orders,
+       SUM(CASE WHEN o.status = 'pending' THEN 1 ELSE 0 END) AS pending_orders,
+       SUM(CASE
+             WHEN o.status IN ('cancelled') THEN 0
+             WHEN o.payment_method = 'mpesa'
+                  AND NOT EXISTS (
+                      SELECT 1 FROM payments p
+                      WHERE p.order_id = o.id
+                        AND p.provider = 'mpesa'
+                        AND p.status = 'successful'
+                  ) THEN 0
+             ELSE o.total
+           END) AS revenue
+     FROM orders o"
 )->fetch();
 
 $statusBadge = [
@@ -143,6 +254,23 @@ include __DIR__ . '/includes/header.php';
         </select>
       </div>
       <div class="col-md-2">
+        <label class="form-label small text-muted">Fulfillment</label>
+        <select name="fulfillment" class="form-select">
+          <option value="">All</option>
+          <option value="delivery" <?= $fulfillment === 'delivery' ? 'selected' : '' ?>>Delivery</option>
+          <option value="pickup" <?= $fulfillment === 'pickup' ? 'selected' : '' ?>>Store Pickup</option>
+        </select>
+      </div>
+      <div class="col-md-2">
+        <label class="form-label small text-muted">Delivery status</label>
+        <select name="delivery_status" class="form-select">
+          <option value="">All</option>
+          <?php foreach ($allowedDeliveryStatuses as $statusOption): ?>
+            <option value="<?= e($statusOption) ?>" <?= $deliveryStatus === $statusOption ? 'selected' : '' ?>><?= e(delivery_status_label($statusOption)) ?></option>
+          <?php endforeach; ?>
+        </select>
+      </div>
+      <div class="col-md-2">
         <label class="form-label small text-muted">From</label>
         <input type="date" name="from" class="form-control" value="<?= e($dateFrom) ?>">
       </div>
@@ -160,7 +288,14 @@ include __DIR__ . '/includes/header.php';
 
 <div class="card">
   <div class="card-body">
-    <h5 class="card-title mb-3"><?= number_format($total) ?> order<?= $total === 1 ? '' : 's' ?></h5>
+    <?php $exportParams = $_GET; $exportParams['export'] = 'csv'; unset($exportParams['page']); ?>
+    <div class="d-flex justify-content-between align-items-center mb-3 gap-2">
+      <h5 class="card-title mb-0"><?= number_format($total) ?> order<?= $total === 1 ? '' : 's' ?></h5>
+      <a class="btn btn-outline-success btn-sm"
+         href="<?= e(admin_url('orders.php?' . http_build_query($exportParams))) ?>">
+        <i class="bi bi-download"></i> Export CSV
+      </a>
+    </div>
 
     <div class="table-responsive">
       <table class="table align-middle">
@@ -171,6 +306,7 @@ include __DIR__ . '/includes/header.php';
             <th>Items</th>
             <th>Total</th>
             <th>Payment</th>
+            <th>Fulfillment</th>
             <th>Status</th>
             <th>Placed</th>
             <th class="text-end">Actions</th>
@@ -191,8 +327,24 @@ include __DIR__ . '/includes/header.php';
               <td class="fw-semibold"><?= e(price((float)$o['total'])) ?></td>
               <td>
                 <span class="badge text-bg-light">
-                  <?= e($o['payment_method'] === 'cod' ? 'COD' : 'Bank') ?>
+                  <?= e(payment_method_label($o['payment_method'])) ?>
                 </span>
+                <?php if ($o['payment_method'] === 'mpesa' && !empty($o['payment_status'])): ?>
+                  <div class="mt-1">
+                    <span class="badge <?= e(mpesa_payment_status_class($o['payment_status'])) ?>">
+                      <?= e(mpesa_payment_status_label($o['payment_status'])) ?>
+                    </span>
+                  </div>
+                <?php endif; ?>
+              </td>
+              <td>
+                <span class="badge text-bg-light">
+                  <i class="bi <?= ($o['delivery_method'] ?? 'delivery') === 'pickup' ? 'bi-shop' : 'bi-truck' ?>"></i>
+                  <?= e(delivery_method_label($o['delivery_method'] ?: 'delivery')) ?>
+                </span>
+                <?php if (!empty($o['delivery_status'])): ?>
+                  <div class="mt-1"><span class="badge <?= e(delivery_status_class($o['delivery_status'])) ?>"><?= e(delivery_status_label($o['delivery_status'])) ?></span></div>
+                <?php endif; ?>
               </td>
               <td>
                 <span class="badge <?= e($statusBadge[$o['status']] ?? 'text-bg-secondary') ?>">
@@ -224,7 +376,7 @@ include __DIR__ . '/includes/header.php';
             </tr>
           <?php endforeach; ?>
           <?php if (!$rows): ?>
-            <tr><td colspan="8" class="text-center text-muted py-4">No orders found.</td></tr>
+            <tr><td colspan="9" class="text-center text-muted py-4">No orders found.</td></tr>
           <?php endif; ?>
         </tbody>
       </table>

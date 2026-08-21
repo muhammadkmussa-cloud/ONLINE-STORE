@@ -8,11 +8,20 @@
 require_once __DIR__ . '/../config/config.php';
 require_once __DIR__ . '/../includes/functions.php';
 
+$migrationToken = getenv('MIGRATION_TOKEN') ?: '';
+$providedMigrationToken = (string)($_GET['token'] ?? $_POST['setup_token'] ?? '');
+if (APP_ENV === 'production' || $migrationToken === '' || $providedMigrationToken === ''
+    || !hash_equals($migrationToken, $providedMigrationToken)) {
+    http_response_code(404);
+    exit('Migration runner unavailable.');
+}
+
 $messages = [];
 $errors   = [];
 $applied  = false;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    require_csrf();
     try {
         $pdo = db();
         $sql = file_get_contents(__DIR__ . '/../sql/migrations.sql');
@@ -47,8 +56,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <div class="card-body p-4 p-md-5">
       <h3><i class="bi bi-arrow-up-circle"></i> Run migrations</h3>
       <p class="text-muted">
-        Applies <code>sql/migrations.sql</code>: adds e-commerce tables
-        (<code>categories</code>, <code>products</code>) and the currency settings.
+        Applies <code>sql/migrations.sql</code>: adds e-commerce, review, payment,
+        refund, delivery, and pricing-snapshot tables plus checkout settings.
       </p>
 
       <?php foreach ($messages as $m): ?>
@@ -64,6 +73,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <p class="small text-muted">For security, please delete <code>migrate.php</code>.</p>
       <?php else: ?>
         <form method="post">
+          <?= csrf_field() ?>
+          <input type="hidden" name="setup_token" value="<?= e($providedMigrationToken) ?>">
           <button class="btn btn-primary w-100">
             <i class="bi bi-rocket-takeoff"></i> Apply migration
           </button>

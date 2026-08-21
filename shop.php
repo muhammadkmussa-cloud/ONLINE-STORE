@@ -28,14 +28,26 @@ if ($featured === '1') {
     $where[] = 'p.featured = 1';
 }
 
-$orderSql = match ($sort) {
-    'price_asc'  => 'COALESCE(p.sale_price, p.price) ASC',
-    'price_desc' => 'COALESCE(p.sale_price, p.price) DESC',
-    'name_asc'   => 'p.name ASC',
-    'name_desc'  => 'p.name DESC',
-    'oldest'     => 'p.created_at ASC',
-    default      => 'p.created_at DESC',
-};
+switch ($sort) {
+    case 'price_asc':
+        $orderSql = 'COALESCE(p.sale_price, p.price) ASC';
+        break;
+    case 'price_desc':
+        $orderSql = 'COALESCE(p.sale_price, p.price) DESC';
+        break;
+    case 'name_asc':
+        $orderSql = 'p.name ASC';
+        break;
+    case 'name_desc':
+        $orderSql = 'p.name DESC';
+        break;
+    case 'oldest':
+        $orderSql = 'p.created_at ASC';
+        break;
+    default:
+        $orderSql = 'p.created_at DESC';
+        break;
+}
 
 $whereSql = 'WHERE ' . implode(' AND ', $where);
 

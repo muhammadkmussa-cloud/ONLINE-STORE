@@ -4,16 +4,51 @@
  */
 require_once __DIR__ . '/../../includes/functions.php';
 
+function admin_login_is_rate_limited(string $email, string $ip): bool
+{
+    try {
+        $stmt = db()->prepare(
+            "SELECT COUNT(*) FROM admin_login_attempts
+             WHERE email = :email AND ip_address = :ip AND successful = 0
+               AND attempted_at >= DATE_SUB(UTC_TIMESTAMP(), INTERVAL 15 MINUTE)"
+        );
+        $stmt->execute([':email' => $email, ':ip' => $ip]);
+        return (int)$stmt->fetchColumn() >= 5;
+    } catch (Throwable $e) {
+        return true;
+    }
+}
+
+function record_admin_login_attempt(string $email, string $ip, bool $successful): void
+{
+    try {
+        db()->prepare('DELETE FROM admin_login_attempts WHERE attempted_at < DATE_SUB(UTC_TIMESTAMP(), INTERVAL 2 DAY)')->execute();
+        db()->prepare(
+            'INSERT INTO admin_login_attempts (email, ip_address, successful) VALUES (:email, :ip, :successful)'
+        )->execute([':email' => $email, ':ip' => $ip, ':successful' => $successful ? 1 : 0]);
+    } catch (Throwable $e) {}
+}
+
 function attempt_login(string $email, string $password): bool
 {
+    $email = strtolower(trim($email));
+    $ip = substr((string)($_SERVER['REMOTE_ADDR'] ?? ''), 0, 45);
+    if (admin_login_is_rate_limited($email, $ip)) {
+        $_SESSION['_admin_login_status'] = 'rate_limited';
+        return false;
+    }
     $stmt = db()->prepare('SELECT * FROM users WHERE email = :email LIMIT 1');
     $stmt->execute([':email' => $email]);
     $user = $stmt->fetch();
 
-    if (!$user || !password_verify($password, $user['password'])) {
+    if (!$user || !password_verify($password, $user['password']) || $user['role'] === 'delivery_driver') {
+        record_admin_login_attempt($email, $ip, false);
+        $_SESSION['_admin_login_status'] = 'invalid';
         return false;
     }
     if ($user['status'] !== 'active') {
+        record_admin_login_attempt($email, $ip, false);
+        $_SESSION['_admin_login_status'] = 'invalid';
         return false;
     }
 
@@ -23,6 +58,9 @@ function attempt_login(string $email, string $password): bool
         db()->prepare('UPDATE users SET password = :p WHERE id = :id')
             ->execute([':p' => $newHash, ':id' => $user['id']]);
     }
+
+    record_admin_login_attempt($email, $ip, true);
+    unset($_SESSION['_admin_login_status']);
 
     // Prevent session fixation.
     session_regenerate_id(true);

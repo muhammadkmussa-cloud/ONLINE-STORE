@@ -112,21 +112,25 @@ function clear_old(): void
 // ----------------------------------------------------------------
 // Settings (key/value table)
 // ----------------------------------------------------------------
+function settings_cache_clear(): void
+{
+    $GLOBALS['__settings_cache'] = null;
+}
+
 function setting(string $key, ?string $default = null): ?string
 {
-    static $cache = null;
-    if ($cache === null) {
-        $cache = [];
+    if (!array_key_exists('__settings_cache', $GLOBALS) || $GLOBALS['__settings_cache'] === null) {
+        $GLOBALS['__settings_cache'] = [];
         try {
             $rows = db()->query('SELECT key_name, value FROM settings')->fetchAll();
             foreach ($rows as $r) {
-                $cache[$r['key_name']] = $r['value'];
+                $GLOBALS['__settings_cache'][$r['key_name']] = $r['value'];
             }
         } catch (Throwable $e) {
             // Settings table may not exist yet during install.
         }
     }
-    return $cache[$key] ?? $default;
+    return $GLOBALS['__settings_cache'][$key] ?? $default;
 }
 
 function update_setting(string $key, string $value): void
@@ -136,6 +140,9 @@ function update_setting(string $key, string $value): void
          ON DUPLICATE KEY UPDATE value = VALUES(value)'
     );
     $stmt->execute([':k' => $key, ':v' => $value]);
+    if (isset($GLOBALS['__settings_cache']) && is_array($GLOBALS['__settings_cache'])) {
+        $GLOBALS['__settings_cache'][$key] = $value;
+    }
 }
 
 // ----------------------------------------------------------------
@@ -243,8 +250,12 @@ function upload_error_message(int $code): string
 /** Return URL to product image (or a placeholder). */
 function product_image_url(?string $image): string
 {
-    if (!empty($image) && file_exists(UPLOADS_PATH . '/products/' . $image)) {
-        return UPLOADS_URL . 'products/' . $image;
+    $safeImage = (string)($image ?? '');
+    if ($safeImage !== ''
+        && basename($safeImage) === $safeImage
+        && preg_match('/^[A-Za-z0-9][A-Za-z0-9._-]{0,254}$/', $safeImage) === 1
+        && file_exists(UPLOADS_PATH . '/products/' . $safeImage)) {
+        return UPLOADS_URL . 'products/' . $safeImage;
     }
     // SVG placeholder.
     return 'data:image/svg+xml;utf8,' . rawurlencode(

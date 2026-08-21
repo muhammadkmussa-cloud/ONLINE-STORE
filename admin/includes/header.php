@@ -58,8 +58,14 @@ $siteName  = setting('site_name', APP_NAME);
                 <i class="bi bi-gear"></i> Settings</a></li>
             <?php endif; ?>
             <li><hr class="dropdown-divider"></li>
-            <li><a class="dropdown-item text-danger" href="<?= e(admin_url('logout.php')) ?>">
-              <i class="bi bi-box-arrow-right"></i> Logout</a></li>
+            <li>
+              <form method="post" action="<?= e(admin_url('logout.php')) ?>" class="m-0">
+                <?= csrf_field() ?>
+                <button class="dropdown-item text-danger" type="submit">
+                  <i class="bi bi-box-arrow-right"></i> Logout
+                </button>
+              </form>
+            </li>
           </ul>
         </div>
       </div>

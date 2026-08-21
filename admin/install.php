@@ -10,11 +10,20 @@
 require_once __DIR__ . '/../config/config.php';
 require_once __DIR__ . '/../includes/functions.php';
 
+$installToken = getenv('INSTALL_TOKEN') ?: '';
+$providedInstallToken = (string)($_GET['token'] ?? $_POST['setup_token'] ?? '');
+if (APP_ENV === 'production' || $installToken === '' || $providedInstallToken === ''
+    || !hash_equals($installToken, $providedInstallToken)) {
+    http_response_code(404);
+    exit('Installer unavailable.');
+}
+
 $messages = [];
 $errors   = [];
 $done     = false;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    require_csrf();
     $adminName  = trim($_POST['name']     ?? 'Super Admin');
     $adminEmail = trim($_POST['email']    ?? '');
     $adminPass  = (string)($_POST['password'] ?? '');
@@ -115,6 +124,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </a>
       <?php else: ?>
         <form method="post" autocomplete="off">
+          <?= csrf_field() ?>
+          <input type="hidden" name="setup_token" value="<?= e($providedInstallToken) ?>">
           <div class="mb-3">
             <label class="form-label">Admin name</label>
             <input type="text" name="name" class="form-control"

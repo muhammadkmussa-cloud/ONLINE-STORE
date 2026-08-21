@@ -1,0 +1,14 @@
+:root {
+    --delivery-primary: #2563eb;
+    --delivery-dark: #0f172a;
+    --delivery-soft: #eff6ff;
+}
+.delivery-body { background: #f8fafc; color: #0f172a; min-height: 100vh; }
+.delivery-navbar { background: linear-gradient(135deg, #1d4ed8, #1e3a8a); }
+.delivery-card { border: 1px solid #dbeafe; transition: transform .15s, box-shadow .15s; }
+.delivery-card:hover { transform: translateY(-2px); box-shadow: 0 .75rem 1.5rem rgba(15,23,42,.08); }
+.delivery-empty-card { border: 1px dashed #bfdbfe; background: var(--delivery-soft); }
+.delivery-footer { border-top: 1px solid #e2e8f0; color: #64748b; padding: 1.25rem 0; margin-top: 3rem; }
+.delivery-login-body { background: linear-gradient(135deg, #eff6ff, #f8fafc); }
+.delivery-login-card { width: 100%; max-width: 460px; border: 0; border-radius: 1rem; }
+.delivery-login-icon { width: 64px; height: 64px; margin: 0 auto; display: grid; place-items: center; border-radius: 18px; color: #fff; background: linear-gradient(135deg, #2563eb, #1e3a8a); font-size: 1.75rem; }

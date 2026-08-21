@@ -1,14 +1,25 @@
 <?php
 require_once __DIR__ . '/includes/shop_bootstrap.php';
+require_once __DIR__ . '/includes/payment_methods.php';
+require_once __DIR__ . '/includes/delivery.php';
+require_once __DIR__ . '/includes/donations.php';
+require_once __DIR__ . '/includes/order_access.php';
 
 $pageTitle = 'Track your order';
 
 // Pre-fill from query string (e.g. when linking from confirmation page).
 $orderNumber = trim((string)($_GET['order'] ?? $_POST['order'] ?? ''));
 $email       = trim((string)($_GET['email'] ?? $_POST['email'] ?? ''));
+$accessToken = trim((string)($_GET['token'] ?? $_POST['token'] ?? ''));
 
 $order  = null;
 $items  = [];
+$payment = null;
+$latestRefund = null;
+$deliverySnapshot = null;
+$pricingSnapshot = null;
+$pickupSnapshot = null;
+$donationSnapshot = null;
 $errors = [];
 $searched = false;
 
@@ -30,6 +41,18 @@ if ($orderNumber !== '' || $email !== '') {
         );
         $stmt->execute([':n' => $orderNumber, ':e' => $email]);
         $order = $stmt->fetch();
+        if ($order) {
+            try {
+                if (order_has_access_token((int)$order['id'])
+                    && !order_access_token_valid((int)$order['id'], $accessToken)) {
+                    $order = null;
+                    $errors[] = 'Use the secure tracking link from your order confirmation.';
+                }
+            } catch (Throwable $e) {
+                $order = null;
+                $errors[] = 'This tracking link is no longer available.';
+            }
+        }
 
         if (!$order) {
             $errors[] = "We couldn't find an order matching that number and email. "
@@ -38,6 +61,39 @@ if ($orderNumber !== '' || $email !== '') {
             $stmt = db()->prepare("SELECT * FROM order_items WHERE order_id = :id");
             $stmt->execute([':id' => $order['id']]);
             $items = $stmt->fetchAll();
+            try {
+                $deliverySnapshot = order_delivery_snapshot((int)$order['id'], false);
+            } catch (Throwable $e) {
+                $deliverySnapshot = null;
+            }
+            try {
+                $pricingSnapshot = order_delivery_pricing_snapshot((int)$order['id'], false);
+            } catch (Throwable $e) {
+                $pricingSnapshot = null;
+            }
+            try {
+                $pickupSnapshot = order_pickup_snapshot((int)$order['id']);
+            } catch (Throwable $e) {
+                $pickupSnapshot = null;
+            }
+            try {
+                $donationSnapshot = order_donation_snapshot((int)$order['id']);
+            } catch (Throwable $e) {
+                $donationSnapshot = null;
+            }
+            try {
+                $payment = mpesa_find_payment_by_order_number($orderNumber);
+            } catch (Throwable $e) {
+                $payment = null;
+            }
+            if ($payment) {
+                try {
+                    $refunds = mpesa_refunds_for_payment((int)$payment['id']);
+                    $latestRefund = $refunds[0] ?? null;
+                } catch (Throwable $e) {
+                    $latestRefund = null;
+                }
+            }
         }
     }
 }
@@ -87,6 +143,7 @@ include __DIR__ . '/includes/shop_header.php';
                    value="<?= e($orderNumber) ?>"
                    placeholder="e.g. ORD-202605-0001" required>
           </div>
+          <input type="hidden" name="token" value="<?= e($accessToken) ?>">
           <div class="col-md-6">
             <label class="form-label">Email used at checkout</label>
             <input type="email" name="email" class="form-control form-control-lg"
@@ -195,7 +252,22 @@ include __DIR__ . '/includes/shop_header.php';
               </div>
               <div>
                 <strong>Payment:</strong>
-                <?= e($order['payment_method'] === 'cod' ? 'Cash on Delivery' : 'Bank Transfer') ?>
+                <?php if ($payment): ?>
+                  <span class="badge <?= e(mpesa_payment_status_class($payment['status'])) ?>">
+                    <?= e(mpesa_payment_status_label($payment['status'])) ?>
+                  </span>
+                  <?php if ($latestRefund): ?>
+                    <span class="badge <?= e(mpesa_refund_status_class($latestRefund['status'])) ?>">
+                      <?= e(mpesa_refund_status_label($latestRefund['status'])) ?>
+                    </span>
+                  <?php endif; ?>
+                <?php else: ?>
+                  <?= e(payment_method_label($order['payment_method'])) ?>
+                <?php endif; ?>
+              </div>
+              <div>
+                <strong>Fulfillment:</strong>
+                <?= e(delivery_method_label($deliverySnapshot['delivery_method'] ?? 'delivery')) ?>
               </div>
               <div>
                 <strong>Total:</strong>
@@ -205,6 +277,32 @@ include __DIR__ . '/includes/shop_header.php';
           </div>
         </div>
       </div>
+
+      <?php if ($payment && in_array($payment['status'], ['initiated', 'pending'], true)): ?>
+        <div class="alert alert-warning d-flex flex-wrap align-items-center justify-content-between gap-2">
+          <span><i class="bi bi-phone"></i> Your M-Pesa payment still needs confirmation.</span>
+          <a href="<?= e(shop_url('mpesa_wait.php?o=' . urlencode($order['order_number']) . '&t=' . urlencode($accessToken))) ?>"
+             class="btn btn-sm btn-warning">View payment status</a>
+        </div>
+      <?php endif; ?>
+
+      <?php if ($latestRefund): ?>
+        <div class="alert alert-info">
+          <i class="bi bi-arrow-counterclockwise"></i>
+          Refund status: <strong><?= e(mpesa_refund_status_label($latestRefund['status'])) ?></strong>.
+        </div>
+      <?php endif; ?>
+
+      <?php if ($pickupSnapshot): ?>
+        <div class="alert alert-info">
+          <h6><i class="bi bi-shop"></i> Store Pickup Instructions</h6>
+          <div><strong>Pickup address:</strong> <?= nl2br(e($pickupSnapshot['pickup_address'])) ?></div>
+          <div class="mt-1"><?= nl2br(e($pickupSnapshot['pickup_instructions'])) ?></div>
+        </div>
+      <?php endif; ?>
+      <?php if ($donationSnapshot && (float)$donationSnapshot['donation_amount'] > 0): ?>
+        <div class="alert alert-success"><i class="bi bi-heart-fill"></i> Donation recorded: <?= e(price((float)$donationSnapshot['donation_amount'])) ?> to <?= e($donationSnapshot['charity_name'] ?: 'the selected charity') ?>.</div>
+      <?php endif; ?>
 
       <div class="card">
         <div class="card-body p-0">
@@ -239,13 +337,27 @@ include __DIR__ . '/includes/shop_header.php';
                 <td class="text-end"><?= e(price((float)$order['subtotal'])) ?></td>
               </tr>
               <tr>
-                <td colspan="3" class="text-end">Shipping</td>
+                <td colspan="3" class="text-end">
+                  <?= e($deliverySnapshot && $deliverySnapshot['delivery_method'] === 'pickup' ? 'Pickup fee' : 'Delivery fee') ?>
+                </td>
                 <td class="text-end">
                   <?= ((float)$order['shipping_fee'] > 0)
                         ? e(price((float)$order['shipping_fee']))
                         : '<span class="text-success">Free</span>' ?>
                 </td>
               </tr>
+              <?php if ($pricingSnapshot && $pricingSnapshot['distance_km'] !== null): ?>
+                <tr>
+                  <td colspan="3" class="text-end text-muted small">Distance · <?= e(number_format((float)$pricingSnapshot['actual_distance_km'], 2)) ?> km actual<?php if ($pricingSnapshot['billable_distance_km'] !== null): ?> · <?= (int)$pricingSnapshot['billable_distance_km'] ?> km billable<?php endif; ?> @ <?= e(price((float)$pricingSnapshot['rate_per_km'])) ?>/km</td>
+                  <td></td>
+                </tr>
+              <?php endif; ?>
+              <?php if ($donationSnapshot && (float)$donationSnapshot['donation_amount'] > 0): ?>
+                <tr>
+                  <td colspan="3" class="text-end">Charity donation<?= $donationSnapshot['charity_name'] ? ' · ' . e($donationSnapshot['charity_name']) : '' ?></td>
+                  <td class="text-end"><?= e(price((float)$donationSnapshot['donation_amount'])) ?></td>
+                </tr>
+              <?php endif; ?>
               <tr class="fw-bold fs-5">
                 <td colspan="3" class="text-end">Total</td>
                 <td class="text-end"><?= e(price((float)$order['total'])) ?></td>
