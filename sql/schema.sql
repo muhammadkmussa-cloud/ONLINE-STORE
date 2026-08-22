@@ -15,13 +15,14 @@ USE `php_admin_panel`;
 CREATE TABLE IF NOT EXISTS `users` (
   `id`         INT UNSIGNED NOT NULL AUTO_INCREMENT,
   `name`       VARCHAR(100) NOT NULL,
-  `email`      VARCHAR(150) NOT NULL UNIQUE,
+  `email`      VARCHAR(254) NOT NULL UNIQUE,
   `password`   VARCHAR(255) NOT NULL,
   `role`       ENUM('admin','editor','user','delivery_driver') NOT NULL DEFAULT 'user',
   `status`     ENUM('active','inactive')     NOT NULL DEFAULT 'active',
   `avatar`     VARCHAR(255) DEFAULT NULL,
   `phone`      VARCHAR(30)  DEFAULT NULL,
   `bio`        TEXT         DEFAULT NULL,
+  `session_epoch` INT       NOT NULL DEFAULT 0,
   `created_at` DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
@@ -41,6 +42,7 @@ CREATE TABLE IF NOT EXISTS `activity_log` (
   `created_at` DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   KEY `idx_log_user`   (`user_id`),
+  KEY `idx_log_created` (`created_at`),
   CONSTRAINT `fk_log_user` FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -73,6 +75,7 @@ INSERT INTO `settings` (`key_name`, `value`) VALUES
   ('store_latitude',         ''),
   ('store_longitude',        ''),
   ('delivery_price_per_km',  '0.00'),
+  ('delivery_max_radius_km', '25'),
   ('donations_enabled',      '0'),
   ('charity_name',            ''),
   ('charity_description',    ''),

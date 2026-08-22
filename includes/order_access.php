@@ -27,7 +27,24 @@ function order_has_access_token(int $orderId): bool
     return (bool)$stmt->fetch();
 }
 
-function order_public_link(string $path, string $orderNumber, string $token): string
+/**
+ * Mint an access token for an order that predates token protection.
+ * Returns the one-time plaintext token, or null when the order already has
+ * one (plaintext is never stored, so it cannot be re-issued here) or when
+ * issuance fails. Lets legacy orders upgrade to secure links as customers
+ * legitimately reach them.
+ */
+function order_access_token_ensure(int $orderId): ?string
 {
-    return url($path . '?o=' . rawurlencode($orderNumber) . '&t=' . rawurlencode($token));
+    if ($orderId < 1 || order_has_access_token($orderId)) {
+        return null;
+    }
+    $token = bin2hex(random_bytes(32));
+    try {
+        db()->prepare('INSERT INTO order_access_tokens (order_id, token_hash) VALUES (:order_id, :token_hash)')
+            ->execute([':order_id' => $orderId, ':token_hash' => order_access_token_hash($token)]);
+        return $token;
+    } catch (Throwable $e) {
+        return null;
+    }
 }

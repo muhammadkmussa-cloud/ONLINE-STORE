@@ -12,9 +12,128 @@ function e(?string $value): string
     return htmlspecialchars((string)$value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
+/**
+ * Neutralize spreadsheet formula injection in CSV exports (OWASP):
+ * prefix cells that begin with =, +, -, @, TAB or CR with a single quote.
+ */
+function csv_cell($value): string
+{
+    $value = (string)$value;
+    if ($value !== '' && strpbrk($value[0], "=+-@\t\r") !== false) {
+        return "'" . $value;
+    }
+    return $value;
+}
+
+/**
+ * Build a literal-substring LIKE pattern: user %, _ and backslash are
+ * neutralized so search input can't act as wildcards or scan whole tables.
+ */
+function like_pattern(string $value): string
+{
+    return '%' . addcslashes($value, '\\%_') . '%';
+}
+
+// ----------------------------------------------------------------
+// Shared login throttling (admin + delivery portals)
+// ----------------------------------------------------------------
+
+/**
+ * Clamp a requested page against the real page count and derive offset.
+ */
+function paginate(int $total, int $perPage, int $requestedPage): array
+{
+    $pages = max(1, (int)ceil($total / max(1, $perPage)));
+    $page  = min(max(1, $requestedPage), $pages);
+    return ['pages' => $pages, 'page' => $page, 'offset' => ($page - 1) * $perPage];
+}
+
+/**
+ * Bootstrap pagination nav that preserves the current query-string filters
+ * (?q=&category=&...) and only swaps ?page=. Renders nothing for 1 page.
+ */
+function render_pagination(int $page, int $pages, string $alignment = 'end'): void
+{
+    if ($pages <= 1) return;
+    $qs = $_GET;
+    $link = function (int $targetPage) use (&$qs): string {
+        $qs['page'] = $targetPage;
+        return '?' . e(http_build_query($qs));
+    };
+    echo '<nav class="mt-3"><ul class="pagination justify-content-' . e($alignment) . ' mb-0">';
+    if ($page > 1) {
+        echo '<li class="page-item"><a class="page-link" href="' . $link($page - 1) . '" aria-label="Previous">&laquo;</a></li>';
+    }
+    for ($pn = 1; $pn <= $pages; $pn++) {
+        echo '<li class="page-item' . ($pn === $page ? ' active' : '')
+            . '"><a class="page-link" href="' . $link($pn) . '">' . $pn . '</a></li>';
+    }
+    if ($page < $pages) {
+        echo '<li class="page-item"><a class="page-link" href="' . $link($page + 1) . '" aria-label="Next">&raquo;</a></li>';
+    }
+    echo '</ul></nav>';
+}
+
+/**
+ * Two-tier throttle: $strict failures per (email, IP) and $wide failures per
+ * email across all sources, within a rolling 15-minute window. Fails closed
+ * so a broken attempts table cannot open a brute-force window.
+ * $table must be an internal literal ('admin_login_attempts' | 'driver_login_attempts').
+ */
+function auth_rate_limit_exceeded(string $table, string $email, string $ip, int $strict = 5, int $wide = 20): bool
+{
+    try {
+        $table = str_replace('`', '', $table);
+        $stmt = db()->prepare(
+            "SELECT COUNT(*) FROM `$table`
+             WHERE email = :email AND ip_address = :ip AND successful = 0
+               AND attempted_at >= DATE_SUB(UTC_TIMESTAMP(), INTERVAL 15 MINUTE)"
+        );
+        $stmt->execute([':email' => $email, ':ip' => $ip]);
+        if ((int)$stmt->fetchColumn() >= $strict) {
+            return true;
+        }
+        $stmt = db()->prepare(
+            "SELECT COUNT(*) FROM `$table`
+             WHERE email = :email AND successful = 0
+               AND attempted_at >= DATE_SUB(UTC_TIMESTAMP(), INTERVAL 15 MINUTE)"
+        );
+        $stmt->execute([':email' => $email]);
+        return (int)$stmt->fetchColumn() >= $wide;
+    } catch (Throwable $e) {
+        return true;
+    }
+}
+
+/** Record one login attempt and prune anything older than two days. */
+function auth_record_login_attempt(string $table, string $email, string $ip, bool $successful): void
+{
+    try {
+        $table = str_replace('`', '', $table);
+        db()->prepare("DELETE FROM `$table` WHERE attempted_at < DATE_SUB(UTC_TIMESTAMP(), INTERVAL 2 DAY)")->execute();
+        db()->prepare("INSERT INTO `$table` (email, ip_address, successful) VALUES (:email, :ip, :successful)")
+            ->execute([':email' => $email, ':ip' => $ip, ':successful' => $successful ? 1 : 0]);
+    } catch (Throwable $e) {
+        // Attempt bookkeeping is best-effort; make failures visible in logs.
+        error_log('Login attempt record failed: ' . $e->getMessage());
+    }
+}
+
 function url(string $path = ''): string
 {
     return BASE_URL . ltrim($path, '/');
+}
+
+/**
+ * URL for a local static asset with automatic cache-busting: the file's
+ * mtime becomes ?v= so deploys invalidate browsers without config.
+ */
+function asset_url(string $path): string
+{
+    $full = ROOT_PATH . '/' . ltrim($path, '/');
+    $version = is_file($full) ? (string)filemtime($full) : '1';
+    $base = url($path);
+    return $base . (strpos($base, '?') === false ? '?' : '&') . 'v=' . rawurlencode($version);
 }
 
 function admin_url(string $path = ''): string
@@ -127,6 +246,7 @@ function setting(string $key, ?string $default = null): ?string
                 $GLOBALS['__settings_cache'][$r['key_name']] = $r['value'];
             }
         } catch (Throwable $e) {
+            error_log('Settings load failed (table may not exist yet): ' . $e->getMessage());
             // Settings table may not exist yet during install.
         }
     }
@@ -162,7 +282,8 @@ function log_activity(string $action, string $description = ''): void
             ':ip'     => $_SERVER['REMOTE_ADDR'] ?? null,
         ]);
     } catch (Throwable $e) {
-        // Silent — logging must never break the request.
+        // Logging must never break the request, but it must be observable.
+        error_log('Activity log write failed: ' . $e->getMessage());
     }
 }
 
@@ -186,9 +307,20 @@ function avatar_url(?string $avatar, string $name = ''): string
     if (!empty($avatar) && file_exists(UPLOADS_PATH . '/' . $avatar)) {
         return UPLOADS_URL . $avatar;
     }
-    // Fallback: use ui-avatars.com (no key required).
-    $initials = urlencode($name ?: 'User');
-    return "https://ui-avatars.com/api/?name={$initials}&background=4f46e5&color=fff&size=128";
+    // Local fallback: initials rendered as an inline SVG data URI. Names are
+    // never sent to third-party avatar services.
+    $initials = strtoupper(mb_substr(trim($name) !== '' ? $name : 'U', 0, 1));
+    if (preg_match('/\S\.\S|\s/', trim($name))) {
+        $parts = preg_split('/\s+|(?<=\.)\s*/u', trim($name), -1, PREG_SPLIT_NO_EMPTY);
+        $initials = strtoupper(mb_substr($parts[0] ?? 'U', 0, 1)
+            . mb_substr($parts[1] ?? '', 0, 1));
+    }
+    $svg = '<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128">'
+        . '<rect width="128" height="128" fill="#4f46e5"/>'
+        . '<text x="64" y="64" dy=".35em" text-anchor="middle" '
+        . 'font-family="system-ui,sans-serif" font-size="56" fill="#fff">'
+        . htmlspecialchars($initials, ENT_XML1) . '</text></svg>';
+    return 'data:image/svg+xml;base64,' . base64_encode($svg);
 }
 
 // ----------------------------------------------------------------
@@ -209,6 +341,11 @@ function slugify(string $text): string
 /** Make a slug unique within a table by appending -1, -2, ... if needed. */
 function unique_slug(string $base, string $table, int $excludeId = 0): string
 {
+    // Table identifiers cannot be parameterized: restrict to known tables.
+    $allowedTables = ['products', 'categories'];
+    if (!in_array($table, $allowedTables, true)) {
+        throw new InvalidArgumentException('Unsupported table for slug generation.');
+    }
     $slug = $base;
     $i    = 1;
     $sql  = "SELECT id FROM `$table` WHERE slug = :s AND id <> :id LIMIT 1";
@@ -223,9 +360,10 @@ function unique_slug(string $base, string $table, int $excludeId = 0): string
 /** Format a numeric price using the configured currency symbol. */
 function price(?float $amount): string
 {
-    $symbol = setting('currency_symbol', '$');
+    $symbol = trim((string)setting('currency_symbol', '$'));
     if ($amount === null) return '—';
-    return $symbol . number_format((float)$amount, 2);
+    $formatted = number_format((float)$amount, 2);
+    return $symbol !== '' ? $symbol . ' ' . $formatted : $formatted;
 }
 
 /**

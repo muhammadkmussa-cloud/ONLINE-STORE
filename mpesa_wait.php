@@ -27,21 +27,52 @@ if ($payment) {
 // to mark an order paid because it does not contain the amount/phone metadata;
 // only a validated callback can do that. Non-zero query results can safely close
 // a pending attempt.
+
+// Local expiry runs on EVERY view of a pending payment (including plain
+// auto-reloads) so a lost callback always terminates the wait loop without
+// any outbound Daraja call.
+$expiresPassed = $payment && $payment['status'] === 'pending'
+    && !empty($payment['expires_at'])
+    && strtotime((string)$payment['expires_at'] . ' UTC') !== false
+    && strtotime((string)$payment['expires_at'] . ' UTC') < time();
+if ($expiresPassed && !empty($payment['checkout_request_id'])) {
+    try {
+        mpesa_mark_terminal(
+            (int)$payment['id'],
+            'expired',
+            'Payment window elapsed while awaiting user confirmation.'
+        );
+        $payment = mpesa_find_payment_by_order_number($orderNumber);
+    } catch (Throwable $e) {
+        error_log('M-Pesa local expiry failed: ' . $e->getMessage());
+    }
+}
+
 if ($payment && $payment['status'] === 'pending'
     && ($_GET['check'] ?? '') === '1'
     && !empty($payment['checkout_request_id'])) {
-    try {
-        $query = mpesa_query_stk((string)$payment['checkout_request_id']);
-        if (isset($query['ResultCode']) && (int)$query['ResultCode'] !== 0) {
-            mpesa_mark_terminal(
-                (int)$payment['id'],
-                mpesa_result_status($query['ResultCode']),
-                (string)($query['ResultDesc'] ?? 'M-Pesa reported an unsuccessful payment.')
-            );
-            $payment = mpesa_find_payment_by_order_number($orderNumber);
+    // Throttle upstream Daraja queries: at most one STK status query per
+    // payment every 10 seconds per browser session, so an auto-reloading or
+    // scripted tab cannot hammer the API and risk credential throttling.
+    $checkThrottleKey = 'mpesa_stk_check_' . (int)$payment['id'];
+    $lastCheckAt = (int)($_SESSION[$checkThrottleKey] ?? 0);
+    if ($lastCheckAt && (time() - $lastCheckAt) < 10) {
+        // Too soon since the last upstream query; just keep showing status.
+    } else {
+        $_SESSION[$checkThrottleKey] = time();
+        try {
+            $query = mpesa_query_stk((string)$payment['checkout_request_id']);
+            if (isset($query['ResultCode']) && (int)$query['ResultCode'] !== 0) {
+                mpesa_mark_terminal(
+                    (int)$payment['id'],
+                    mpesa_result_status($query['ResultCode']),
+                    (string)($query['ResultDesc'] ?? 'M-Pesa reported an unsuccessful payment.')
+                );
+                $payment = mpesa_find_payment_by_order_number($orderNumber);
+            }
+        } catch (Throwable $e) {
+            error_log('M-Pesa status query failed: ' . $e->getMessage());
         }
-    } catch (Throwable $e) {
-        error_log('M-Pesa status query failed: ' . $e->getMessage());
     }
 }
 
@@ -69,8 +100,17 @@ include __DIR__ . '/includes/shop_header.php';
 <?php if ($isPending): ?>
   <script>
     // This only refreshes the display. Paid state is set by the server-side
-    // Daraja callback, never by this browser script.
-    window.setTimeout(function () { window.location.reload(); }, 5000);
+    // Daraja callback, never by this browser script. Reloads are capped so a
+    // lost callback cannot loop this page forever.
+    (function () {
+      var key = 'mpesaWaitReloads';
+      try {
+        var n = Number(sessionStorage.getItem(key) || 0) + 1;
+        if (n > 120) return; // ~10 minutes at 5s; stop and show guidance.
+        sessionStorage.setItem(key, String(n));
+      } catch (e) { /* storage unavailable: keep previous behavior */ }
+      window.setTimeout(function () { window.location.reload(); }, 5000);
+    })();
   </script>
 <?php endif; ?>
 

@@ -78,8 +78,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'submi
     if ($reviewOld['customer_name'] === '') {
         $reviewErrors[] = 'Your name is required.';
     }
-    if ($reviewOld['customer_email'] !== ''
-        && !filter_var($reviewOld['customer_email'], FILTER_VALIDATE_EMAIL)) {
+    if ($reviewOld['customer_email'] === '') {
+        $reviewErrors[] = 'Your email is required so we can manage your review.';
+    } elseif (!filter_var($reviewOld['customer_email'], FILTER_VALIDATE_EMAIL)) {
         $reviewErrors[] = 'Please enter a valid email address.';
     }
     if ($rating < 1 || $rating > 5) {
@@ -87,6 +88,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'submi
     }
     if ($reviewOld['body'] === '' || strlen($reviewOld['body']) < 10) {
         $reviewErrors[] = 'Your review must be at least 10 characters.';
+    }
+    if (mb_strlen($reviewOld['customer_name']) > 100) {
+        $reviewErrors[] = 'Your name must be 100 characters or fewer.';
+    }
+    if (mb_strlen($reviewOld['title']) > 200) {
+        $reviewErrors[] = 'The title must be 200 characters or fewer.';
+    }
+
+    // Flood control: one submission per minute per session, and at most one
+    // review per customer per product per day regardless of moderation state.
+    $lastReviewAt = (int)($_SESSION['last_review_at'] ?? 0);
+    if (!$reviewErrors && $lastReviewAt && time() - $lastReviewAt < 60) {
+        $reviewErrors[] = 'Please wait a minute before submitting another review.';
+    }
+    if (!$reviewErrors && $reviewOld['customer_email'] !== '') {
+        try {
+            $dupStmt = db()->prepare(
+                "SELECT COUNT(*) FROM product_reviews
+                 WHERE product_id = :product_id AND customer_email = :email
+                   AND created_at >= DATE_SUB(UTC_TIMESTAMP(), INTERVAL 24 HOUR)"
+            );
+            $dupStmt->execute([
+                ':product_id' => (int)$product['id'],
+                ':email'      => $reviewOld['customer_email'],
+            ]);
+            if ((int)$dupStmt->fetchColumn() > 0) {
+                $reviewErrors[] = 'We already received a review from this email for this product recently.';
+            }
+        } catch (Throwable $e) {
+            // Reviews table missing (pre-migration): skip the duplicate probe.
+        }
     }
 
     if (!$reviewErrors) {
@@ -105,6 +137,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'submi
                 ':title'     => $reviewOld['title'] ?: null,
                 ':body'      => $reviewOld['body'],
             ]);
+            $_SESSION['last_review_at'] = time();
             flash('success', 'Thanks for your review! It will appear after moderation.');
             redirect('product.php?slug=' . urlencode($product['slug']) . '#reviews');
         } catch (Throwable $e) {

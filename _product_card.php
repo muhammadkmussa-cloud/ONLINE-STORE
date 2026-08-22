@@ -2,6 +2,12 @@
 /**
  * Reusable product card. Expects $p (product row) to be in scope.
  */
+// Direct browser hits have no product in scope: fail as a plain 404
+// instead of a fatal "undefined function" error.
+if (!isset($p) || !is_array($p)) {
+    http_response_code(404);
+    exit('Not found.');
+}
 $onSale     = product_is_on_sale($p);
 $discount   = $onSale ? product_discount_percent($p) : 0;
 $outOfStock = (int)($p['stock'] ?? 0) <= 0;
@@ -27,13 +33,14 @@ $outOfStock = (int)($p['stock'] ?? 0) <= 0;
 
   <form method="post" action="<?= e(shop_url('wishlist.php')) ?>" class="wishlist-card-form">
     <?= csrf_field() ?>
+    <?php $inWishlist = wishlist_has((int)$p['id']); ?>
     <input type="hidden" name="action" value="toggle">
     <input type="hidden" name="product_id" value="<?= (int)$p['id'] ?>">
     <input type="hidden" name="return_to" value="<?= e($wishlistReturnTo ?? 'shop.php') ?>">
-    <button class="wishlist-card-btn <?= wishlist_has((int)$p['id']) ? 'is-saved' : '' ?>"
-            title="<?= wishlist_has((int)$p['id']) ? 'Remove from wishlist' : 'Save to wishlist' ?>"
-            aria-label="<?= wishlist_has((int)$p['id']) ? 'Remove from wishlist' : 'Save to wishlist' ?>">
-      <i class="bi bi-heart<?= wishlist_has((int)$p['id']) ? '-fill' : '' ?>"></i>
+    <button class="wishlist-card-btn <?= $inWishlist ? 'is-saved' : '' ?>"
+            title="<?= $inWishlist ? 'Remove from wishlist' : 'Save to wishlist' ?>"
+            aria-label="<?= $inWishlist ? 'Remove from wishlist' : 'Save to wishlist' ?>">
+      <i class="bi bi-heart<?= $inWishlist ? '-fill' : '' ?>"></i>
     </button>
   </form>
 

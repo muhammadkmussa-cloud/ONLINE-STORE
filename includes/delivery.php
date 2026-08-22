@@ -75,7 +75,8 @@ function delivery_pricing_settings(): array
 function delivery_pricing_settings_errors(
     string $storeLatitude,
     string $storeLongitude,
-    string $ratePerKm
+    string $ratePerKm,
+    ?string $maxRadiusKm = null
 ): array {
     $errors = [];
     $hasLat = trim($storeLatitude) !== '';
@@ -87,6 +88,10 @@ function delivery_pricing_settings_errors(
     }
     if ($ratePerKm === '' || !is_numeric($ratePerKm) || (float)$ratePerKm < 0) {
         $errors[] = 'Delivery price per kilometer must be zero or a positive amount.';
+    }
+    if ($maxRadiusKm !== null
+        && ($maxRadiusKm === '' || !is_numeric($maxRadiusKm) || (float)$maxRadiusKm <= 0)) {
+        $errors[] = 'Maximum delivery radius must be a positive number of kilometers.';
     }
     return $errors;
 }
@@ -118,6 +123,17 @@ function delivery_billable_distance_km(float $actualDistanceKm): int
         throw new InvalidArgumentException('Calculated delivery distance is impossible.');
     }
     return (int)ceil($actualDistanceKm);
+}
+
+/**
+ * Maximum delivery radius from the store. Configurable through the
+ * delivery_max_radius_km setting; falls back to a safe default so a
+ * missing/invalid setting can never disable the cap.
+ */
+function delivery_max_radius_km(): float
+{
+    $raw = trim((string)setting('delivery_max_radius_km', '25'));
+    return is_numeric($raw) && (float)$raw > 0 ? (float)$raw : 25.0;
 }
 
 /**
@@ -161,6 +177,16 @@ function delivery_calculate_quote(string $deliveryMethod, $customerLatitude = nu
         (float)$customerLatitude,
         (float)$customerLongitude
     );
+    // The coordinates come from the customer's browser, so the distance they
+    // imply cannot be trusted to set the fee without a service-area cap.
+    $maxRadius = delivery_max_radius_km();
+    if ($distance > $maxRadius) {
+        throw new InvalidArgumentException(sprintf(
+            'This location is about %s km from the store — outside our %s km delivery area. Please choose Store Pickup or contact us.',
+            number_format($distance, 1),
+            number_format($maxRadius, 0)
+        ));
+    }
     $billableDistance = delivery_billable_distance_km($distance);
     return [
         'pricing_mode' => 'distance',
@@ -235,6 +261,23 @@ function delivery_status_definitions(): array
         'arrived' => ['label' => 'Arrived', 'class' => 'text-bg-warning'],
         'delivered' => ['label' => 'Delivered', 'class' => 'text-bg-success'],
         'unable_to_deliver' => ['label' => 'Unable to Deliver', 'class' => 'text-bg-danger'],
+    ];
+}
+
+/**
+ * Allowed next delivery statuses per current status. Drivers must follow the
+ * workflow instead of jumping straight to Delivered; a failed drop may be
+ * re-attempted from any earlier operational stage.
+ */
+function delivery_status_transitions(): array
+{
+    return [
+        'assigned'         => ['picked_up', 'unable_to_deliver'],
+        'picked_up'        => ['out_for_delivery', 'unable_to_deliver'],
+        'out_for_delivery' => ['arrived', 'unable_to_deliver'],
+        'arrived'          => ['delivered', 'unable_to_deliver'],
+        'delivered'        => [],
+        'unable_to_deliver'=> ['picked_up', 'out_for_delivery', 'arrived'],
     ];
 }
 

@@ -62,18 +62,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $search = trim((string)($_GET['q'] ?? ''));
 $status = trim((string)($_GET['status'] ?? ''));
 $perPage = max(5, (int)setting('items_per_page', '10'));
-$page = max(1, (int)($_GET['page'] ?? 1));
-$offset = ($page - 1) * $perPage;
+$page = 1;   // finalized by paginate() once the total is known
+$offset = 0;
 
 $where = [];
 $params = [];
 if ($search !== '') {
     $where[] = '(r.customer_name LIKE :q1 OR r.customer_email LIKE :q2
                  OR r.body LIKE :q3 OR p.name LIKE :q4)';
-    $params[':q1'] = "%$search%";
-    $params[':q2'] = "%$search%";
-    $params[':q3'] = "%$search%";
-    $params[':q4'] = "%$search%";
+    $params[':q1'] = like_pattern($search);
+    $params[':q2'] = like_pattern($search);
+    $params[':q3'] = like_pattern($search);
+    $params[':q4'] = like_pattern($search);
 }
 if (in_array($status, $allowedStatuses, true)) {
     $where[] = 'r.status = :status';
@@ -93,7 +93,8 @@ try {
     );
     $stmt->execute($params);
     $total = (int)$stmt->fetchColumn();
-    $pages = max(1, (int)ceil($total / $perPage));
+    $pg = paginate($total, $perPage, (int)($_GET['page'] ?? 1));
+    $page = $pg['page']; $pages = $pg['pages']; $offset = $pg['offset'];
 
     $stmt = db()->prepare(
         "SELECT r.*, p.name AS product_name, p.slug AS product_slug
@@ -108,9 +109,13 @@ try {
     $stmt->bindValue(':off', $offset, PDO::PARAM_INT);
     $stmt->execute();
     $rows = $stmt->fetchAll();
+    $reviewsLoadError = false;
 } catch (Throwable $e) {
-    // The review migration may not have been run yet.
+    // Missing table = pre-migration install; anything else is a real fault.
+    error_log('Reviews list query failed: ' . $e->getMessage());
+    $reviewsLoadError = true;
 }
+if (!isset($reviewsLoadError)) $reviewsLoadError = false;
 
 $stats = ['total' => 0, 'pending' => 0, 'approved' => 0];
 try {
@@ -120,7 +125,9 @@ try {
                 SUM(status = 'approved') AS approved
          FROM product_reviews"
     )->fetch() ?: $stats;
-} catch (Throwable $e) {}
+} catch (Throwable $e) {
+    error_log('Review stats query failed: ' . $e->getMessage());
+}
 
 $statusBadge = [
     'pending'  => 'text-bg-warning',
@@ -263,7 +270,11 @@ include __DIR__ . '/includes/header.php';
           <?php endforeach; ?>
           <?php if (!$rows): ?>
             <tr><td colspan="6" class="text-center text-muted py-4">
-              No reviews found. Run the migration if this is a new installation.
+<?php if ($reviewsLoadError): ?>
+                Reviews could not be loaded — check the server error log.
+              <?php else: ?>
+                No reviews found. Run the migration if this is a new installation.
+              <?php endif; ?>
             </td></tr>
           <?php endif; ?>
         </tbody>
@@ -271,13 +282,7 @@ include __DIR__ . '/includes/header.php';
     </div>
 
     <?php if ($pages > 1): $qs = $_GET; ?>
-      <nav class="mt-3"><ul class="pagination justify-content-end mb-0">
-        <?php for ($pn = 1; $pn <= $pages; $pn++): $qs['page'] = $pn; ?>
-          <li class="page-item <?= $pn === $page ? 'active' : '' ?>">
-            <a class="page-link" href="?<?= e(http_build_query($qs)) ?>"><?= $pn ?></a>
-          </li>
-        <?php endfor; ?>
-      </ul></nav>
+      <?php render_pagination($page, $pages); ?>
     <?php endif; ?>
   </div>
 </div>

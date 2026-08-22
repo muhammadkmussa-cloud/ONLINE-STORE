@@ -57,9 +57,14 @@ Before opening a PR, please:
    dashboard. Loading without errors is a low bar but a real one.
 5. **Update `README.md`** if you change a public URL, settings key,
    default credential, or folder layout.
-6. **Update `sql/migrations.sql`** if you add or change a table. Use
-   `CREATE TABLE IF NOT EXISTS` and `ALTER TABLE … IF NOT EXISTS`-style
-   guards so re-running the migration stays safe.
+6. **Update `sql/migrations.sql`** if you add or change a table. Keep every
+   statement re-runnable: `CREATE TABLE IF NOT EXISTS`, and
+   `ON DUPLICATE KEY UPDATE key_name = key_name` for setting seeds.
+   MySQL does **not** support `ALTER TABLE … ADD COLUMN/INDEX IF NOT EXISTS`
+   (that syntax is MariaDB-only), so for new indexes or columns either bake
+   them into the original `CREATE TABLE` (fresh installs) AND extend the
+   `ensureUniqueIndex()`-style checks in `admin/migrate.php` (existing
+   installs) — see how `uq_products_sku` is handled.
 
 ## Code style
 

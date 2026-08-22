@@ -1,5 +1,8 @@
 -- =======================================================
 --  E-commerce migration — safe to re-run.
+--  PREREQUISITE: sql/schema.sql must be applied FIRST. This file ALTERs and
+--  references `users` and INSERTs into `settings`, which only schema.sql
+--  creates. Running this file alone on an empty database will fail.
 --  Creates: categories, products, orders, order_items, product_reviews, payments,
 --           mpesa_refunds, order_delivery_locations, pricing, drivers, assignments.
 --  Adds:    currency settings.
@@ -40,16 +43,22 @@ CREATE TABLE IF NOT EXISTS `products` (
   `created_at`       DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at`       DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_products_sku` (`sku`),
   KEY `idx_products_category` (`category_id`),
   KEY `idx_products_status`   (`status`),
   KEY `idx_products_featured` (`featured`),
+  -- Composite indexes for the storefront listing queries
+  -- (filter + sort in one index; see shop.php / category.php).
+  KEY `idx_products_status_created` (`status`, `created_at`),
+  KEY `idx_products_cat_status_created` (`category_id`, `status`, `created_at`),
   CONSTRAINT `fk_products_category`
       FOREIGN KEY (`category_id`) REFERENCES `categories`(`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Make SKU unique only when not null.
--- (Older MySQL versions don't support partial indexes, so we use a regular UNIQUE.)
--- We intentionally don't add a UNIQUE constraint on SKU so blank SKUs are allowed.
+-- SKU uniqueness: MySQL UNIQUE indexes allow multiple NULLs, and blank SKUs
+-- are normalized to NULL by admin/product_form.php, so a plain UNIQUE index
+-- is safe. Existing installations receive this index via admin/migrate.php,
+-- which checks INFORMATION_SCHEMA before ALTERing.
 
 -- ---------------------------------------------------------
 -- Orders
@@ -58,7 +67,7 @@ CREATE TABLE IF NOT EXISTS `orders` (
   `id`                INT UNSIGNED  NOT NULL AUTO_INCREMENT,
   `order_number`      VARCHAR(40)   NOT NULL UNIQUE,
   `customer_name`     VARCHAR(150)  NOT NULL,
-  `customer_email`    VARCHAR(150)  NOT NULL,
+  `customer_email`    VARCHAR(254)  NOT NULL,
   `customer_phone`    VARCHAR(40)   DEFAULT NULL,
   `shipping_address`  TEXT          NOT NULL,
   `shipping_city`     VARCHAR(100)  DEFAULT NULL,
@@ -114,6 +123,7 @@ INSERT INTO `settings` (`key_name`, `value`) VALUES
   ('store_latitude',         ''),
   ('store_longitude',        ''),
   ('delivery_price_per_km',  '0.00'),
+  ('delivery_max_radius_km', '25'),
   ('donations_enabled',      '0'),
   ('charity_name',            ''),
   ('charity_description',    ''),
@@ -128,7 +138,7 @@ CREATE TABLE IF NOT EXISTS `product_reviews` (
   `id`             INT UNSIGNED NOT NULL AUTO_INCREMENT,
   `product_id`     INT UNSIGNED NOT NULL,
   `customer_name`  VARCHAR(100) NOT NULL,
-  `customer_email` VARCHAR(150) DEFAULT NULL,
+  `customer_email` VARCHAR(254) DEFAULT NULL,
   `rating`         TINYINT UNSIGNED NOT NULL,
   `title`          VARCHAR(200) DEFAULT NULL,
   `body`           TEXT NOT NULL,
@@ -291,7 +301,7 @@ ALTER TABLE `users`
 
 CREATE TABLE IF NOT EXISTS `driver_login_attempts` (
   `id`           BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-  `email`        VARCHAR(150) NOT NULL,
+  `email`        VARCHAR(254) NOT NULL,
   `ip_address`   VARCHAR(45) DEFAULT NULL,
   `successful`   TINYINT(1) NOT NULL DEFAULT 0,
   `attempted_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -313,7 +323,11 @@ CREATE TABLE IF NOT EXISTS `delivery_assignments` (
   `unassigned_at` DATETIME DEFAULT NULL,
   `created_at`    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at`    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  -- NULL for every non-'assigned' row, so this UNIQUE key permits many
+  -- historical rows per order but only ONE active assignment.
+  `active_flag`   TINYINT GENERATED ALWAYS AS (IF(status = 'assigned', 1, NULL)) STORED,
   PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_assignment_active` (`order_id`, `active_flag`),
   KEY `idx_assignment_order_status` (`order_id`, `status`),
   KEY `idx_assignment_driver_status` (`driver_id`, `status`),
   CONSTRAINT `fk_assignment_order`
@@ -412,11 +426,22 @@ CREATE TABLE IF NOT EXISTS `order_access_tokens` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ---------------------------------------------------------
+-- Newsletter subscribers
+-- ---------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `newsletter_subscribers` (
+  `id`         BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `email`      VARCHAR(191) NOT NULL,
+  `created_at` DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_newsletter_email` (`email`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ---------------------------------------------------------
 -- Admin login throttling
 -- ---------------------------------------------------------
 CREATE TABLE IF NOT EXISTS `admin_login_attempts` (
   `id`           BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-  `email`        VARCHAR(150) NOT NULL,
+  `email`        VARCHAR(254) NOT NULL,
   `ip_address`   VARCHAR(45) DEFAULT NULL,
   `successful`   TINYINT(1) NOT NULL DEFAULT 0,
   `attempted_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,

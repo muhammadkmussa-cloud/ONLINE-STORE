@@ -30,7 +30,7 @@ $page    = max(1, (int) ($_GET['page'] ?? 1));
 $offset  = ($page - 1) * $perPage;
 
 $where = []; $params = [];
-if ($search !== '') { $where[] = 'name LIKE :q';      $params[':q']      = "%$search%"; }
+if ($search !== '') { $where[] = 'name LIKE :q';      $params[':q']      = like_pattern($search); }
 if (in_array($status, ['active', 'inactive'], true)) {
     $where[] = 'status = :st'; $params[':st'] = $status;
 }
@@ -39,7 +39,8 @@ $whereSql = $where ? ('WHERE ' . implode(' AND ', $where)) : '';
 $stmt = db()->prepare("SELECT COUNT(*) FROM categories $whereSql");
 $stmt->execute($params);
 $total = (int) $stmt->fetchColumn();
-$pages = max(1, (int) ceil($total / $perPage));
+$pg = paginate($total, $perPage, (int)($_GET['page'] ?? 1));
+$page = $pg['page']; $pages = $pg['pages']; $offset = $pg['offset'];
 
 $stmt = db()->prepare(
     "SELECT c.*, (SELECT COUNT(*) FROM products p WHERE p.category_id = c.id) AS product_count
@@ -127,15 +128,7 @@ include __DIR__ . '/includes/header.php';
       </table>
     </div>
 
-    <?php if ($pages > 1): $qs = $_GET; ?>
-      <nav class="mt-3"><ul class="pagination justify-content-end mb-0">
-        <?php for ($p = 1; $p <= $pages; $p++): $qs['page'] = $p; ?>
-          <li class="page-item <?= $p === $page ? 'active' : '' ?>">
-            <a class="page-link" href="?<?= e(http_build_query($qs)) ?>"><?= $p ?></a>
-          </li>
-        <?php endfor; ?>
-      </ul></nav>
-    <?php endif; ?>
+    <?php render_pagination($page, $pages); ?>
   </div>
 </div>
 

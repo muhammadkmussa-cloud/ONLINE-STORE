@@ -1,6 +1,6 @@
 <?php
 require_once __DIR__ . '/includes/auth.php';
-require_login();
+require_role('admin', 'editor');
 
 $pageTitle = 'Activity log';
 
@@ -9,7 +9,8 @@ $page    = max(1, (int) ($_GET['page'] ?? 1));
 $offset  = ($page - 1) * $perPage;
 
 $total = (int) db()->query('SELECT COUNT(*) FROM activity_log')->fetchColumn();
-$pages = max(1, (int) ceil($total / $perPage));
+$pg = paginate($total, $perPage, (int)($_GET['page'] ?? 1));
+$page = $pg['page']; $pages = $pg['pages']; $offset = $pg['offset'];
 
 $stmt = db()->prepare(
     'SELECT a.*, u.name AS user_name
@@ -56,15 +57,7 @@ include __DIR__ . '/includes/header.php';
       </table>
     </div>
 
-    <?php if ($pages > 1): ?>
-      <nav class="mt-3"><ul class="pagination justify-content-end mb-0">
-        <?php for ($p = 1; $p <= $pages; $p++): ?>
-          <li class="page-item <?= $p === $page ? 'active' : '' ?>">
-            <a class="page-link" href="?page=<?= $p ?>"><?= $p ?></a>
-          </li>
-        <?php endfor; ?>
-      </ul></nav>
-    <?php endif; ?>
+    <?php render_pagination($page, $pages); ?>
   </div>
 </div>
 <?php include __DIR__ . '/includes/footer.php'; ?>

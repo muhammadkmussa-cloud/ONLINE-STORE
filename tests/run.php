@@ -17,8 +17,11 @@ $_SERVER['REMOTE_ADDR'] = '198.51.100.200';
 ob_start();
 
 $testDbName = getenv('TEST_DB_NAME') ?: 'php_admin_panel_test';
-if (!preg_match('/(?:test|testing|ci)/i', $testDbName)
-    || in_array($testDbName, ['php_admin_panel', 'production', 'prod'], true)) {
+// Allowlist shape (must look like a test database) AND denylist substrings
+// so tricky names like "ciproduction" can never reach the DROP below.
+if (!preg_match('/(?:^test|^testing|^ci|_test$)/i', $testDbName)
+    || preg_match('/prod|live/i', $testDbName)
+    || in_array($testDbName, ['php_admin_panel'], true)) {
     fwrite(STDERR, "Refusing unsafe TEST_DB_NAME: {$testDbName}\n");
     exit(2);
 }
@@ -232,6 +235,11 @@ try {
         try { donation_amount_normalize('-1'); throw new RuntimeException('negative donation accepted'); }
         catch (InvalidArgumentException $e) {}
         check_true(donations_are_available(), 'configured donation was not available');
+        // Over-cap and non-numeric inputs must be rejected too.
+        try { donation_amount_normalize('1000001'); throw new RuntimeException('over-cap donation accepted'); }
+        catch (InvalidArgumentException $e) {}
+        try { donation_amount_normalize('abc'); throw new RuntimeException('non-numeric donation accepted'); }
+        catch (InvalidArgumentException $e) {}
         check_same(112.50, 100.00 + 0.00 + donation_amount_normalize('12.50'), 'donation total formula');
     });
 

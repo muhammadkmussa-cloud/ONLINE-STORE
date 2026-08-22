@@ -24,6 +24,17 @@ class Database
 
             try {
                 self::$instance = new PDO($dsn, DB_USER, DB_PASS, $options);
+                // Pin the session clock to UTC so CURRENT_TIMESTAMP column
+                // defaults and NOW() store UTC no matter how the host is
+                // configured. All application bookkeeping (rate limits,
+                // payment expiry, sweeps) compares against UTC_TIMESTAMP();
+                // presentation layers convert to APP_TIMEZONE where needed.
+                try {
+                    self::$instance->exec("SET time_zone = '+00:00'");
+                } catch (Throwable $tzError) {
+                    // Unsettable session variable: keep the server default
+                    // rather than failing every request.
+                }
             } catch (PDOException $e) {
                 if (APP_ENV === 'development') {
                     die('Database connection failed: ' . htmlspecialchars($e->getMessage()));

@@ -1,8 +1,9 @@
 <?php
 require_once __DIR__ . '/includes/auth.php';
-require_login();
+require_role('admin', 'editor');
 
 $pageTitle = 'Dashboard';
+$loadChartJs = true; // Only this page renders a chart.
 
 // E-commerce stats (gracefully handle missing tables — pre-migration).
 $ecommerceEnabled = false;
@@ -23,6 +24,22 @@ $totalRevenue    = 0.0;
 $todayRevenue    = 0.0;
 $recentOrders    = [];
 $ordersEnabled   = false;
+
+// Store timezone + its UTC offset (+HH:MM). DB stores UTC (see database.php);
+// presentation buckets convert into business-local days.
+$storeTimezone = app_config_env('APP_TIMEZONE', 'UTC');
+try {
+    new DateTimeZone($storeTimezone);
+} catch (Throwable $tzError) {
+    $storeTimezone = 'UTC';
+}
+$tzOffset = (new DateTime('now', new DateTimeZone($storeTimezone)))->format('P');
+if (!preg_match('/^[+-]\d{2}:\d{2}$/', $tzOffset)) {
+    $tzOffset = '+00:00';
+}
+$storeTz   = new DateTimeZone($storeTimezone);
+$utcStart7d = (new DateTime('today', $storeTz))->modify('-6 days')
+    ->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d H:i:s');
 
 try {
     $totalProducts    = (int) db()->query('SELECT COUNT(*) FROM products')->fetchColumn();
@@ -47,18 +64,22 @@ try {
          ORDER BY p.created_at DESC LIMIT 5'
     )->fetchAll();
 
-    // Chart: products added per day (last 7 days)
-    $rows = db()->query(
-        "SELECT DATE(created_at) AS d, COUNT(*) AS c
+    // Chart: products added per day (last 7 days in the store timezone).
+    // The window starts at local midnight six days ago, expressed as a UTC
+    // instant so it is exact for any timezone sign.
+    $stmt = db()->prepare(
+        "SELECT DATE(CONVERT_TZ(created_at, '+00:00', :tz)) AS d, COUNT(*) AS c
          FROM products
-         WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL 6 DAY)
-         GROUP BY DATE(created_at)"
-    )->fetchAll();
+         WHERE created_at >= :utc_start
+         GROUP BY d"
+    );
+    $stmt->execute([':tz' => $tzOffset, ':utc_start' => $utcStart7d]);
+    $rows = $stmt->fetchAll();
     $byDate = [];
     foreach ($rows as $r) $byDate[$r['d']] = (int)$r['c'];
     for ($i = 6; $i >= 0; $i--) {
-        $d = date('Y-m-d', strtotime("-$i day"));
-        $labels[] = date('M j', strtotime($d));
+        $d = (new DateTime('today', $storeTz))->modify("-$i day")->format('Y-m-d');
+        $labels[] = (new DateTime($d, $storeTz))->format('M j');
         $values[] = $byDate[$d] ?? 0;
     }
 
@@ -82,13 +103,23 @@ try {
                             AND p.provider = 'mpesa'
                             AND p.status = 'successful'
                       )
-                 THEN 0 ELSE o.total END
+                 THEN 0
+                 ELSE GREATEST(o.total - COALESCE((
+                          SELECT SUM(r.amount) FROM mpesa_refunds r
+                          WHERE r.order_id = o.id
+                            AND r.status IN ('successful', 'refunded')
+                      ), 0), 0)
+            END
          ), 0)
          FROM orders o
          WHERE o.status NOT IN ('cancelled')";
     $totalRevenue = (float) db()->query($revenueSql)->fetchColumn();
-    $todayRevenue = (float) db()->query($revenueSql . " AND DATE(o.created_at) = CURDATE()")
-        ->fetchColumn();
+    // "Today" follows the store timezone: convert both the stored UTC instant
+    // and the current moment into local dates, then compare those dates.
+    $todayStmt = db()->prepare($revenueSql
+        . " AND DATE(CONVERT_TZ(o.created_at, '+00:00', :tz)) = DATE(CONVERT_TZ(UTC_TIMESTAMP(), '+00:00', :today_tz))");
+    $todayStmt->execute([':tz' => $tzOffset, ':today_tz' => $tzOffset]);
+    $todayRevenue = (float) $todayStmt->fetchColumn();
     $recentOrders  = db()->query(
         "SELECT id, order_number, customer_name, total, status, created_at
          FROM orders ORDER BY created_at DESC LIMIT 6"

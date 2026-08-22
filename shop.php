@@ -7,18 +7,19 @@ $search    = trim((string)($_GET['q']        ?? ''));
 $catSlug   = trim((string)($_GET['category'] ?? ''));
 $featured  = trim((string)($_GET['featured'] ?? ''));
 $sort      = trim((string)($_GET['sort']     ?? 'newest'));
+$catalogError = false;
 $perPage   = 12;
-$page      = max(1, (int)($_GET['page'] ?? 1));
-$offset    = ($page - 1) * $perPage;
+$page      = 1;    // finalized by paginate() once the total is known
+$offset    = 0;
 
 $where  = ["p.status = 'active'"];
 $params = [];
 
 if ($search !== '') {
     $where[] = '(p.name LIKE :q1 OR p.short_description LIKE :q2 OR p.description LIKE :q3)';
-    $params[':q1'] = "%$search%";
-    $params[':q2'] = "%$search%";
-    $params[':q3'] = "%$search%";
+    $params[':q1'] = like_pattern($search);
+    $params[':q2'] = like_pattern($search);
+    $params[':q3'] = like_pattern($search);
 }
 if ($catSlug !== '') {
     $where[] = 'c.slug = :cs';
@@ -60,7 +61,8 @@ try {
     );
     $stmt->execute($params);
     $total = (int) $stmt->fetchColumn();
-    $pages = max(1, (int) ceil($total / $perPage));
+    $pg = paginate($total, $perPage, (int)($_GET['page'] ?? 1));
+    $page = $pg['page']; $pages = $pg['pages']; $offset = $pg['offset'];
 
     $stmt = db()->prepare(
         "SELECT p.*, c.name AS category_name, c.slug AS category_slug
@@ -75,10 +77,14 @@ try {
     $stmt->bindValue(':off', $offset,  PDO::PARAM_INT);
     $stmt->execute();
     $products = $stmt->fetchAll();
+    $catalogError = false;
 } catch (Throwable $e) {
+    // An outage must not masquerade as an empty catalog.
+    error_log('Catalog query failed: ' . $e->getMessage());
     $products = [];
     $total = 0;
     $pages = 1;
+    $catalogError = true;
 }
 
 $cats = shop_active_categories();
@@ -96,9 +102,6 @@ include __DIR__ . '/includes/shop_header.php';
 
     <!-- Filters -->
     <form class="filters-bar" method="get">
-      <?php if ($search !== ''): ?>
-        <input type="hidden" name="q" value="<?= e($search) ?>">
-      <?php endif; ?>
       <div class="row g-2 align-items-end">
         <div class="col-md-4">
           <label class="form-label">Search</label>
@@ -151,38 +154,20 @@ include __DIR__ . '/includes/shop_header.php';
         <?php endforeach; ?>
       </div>
 
-      <?php if ($pages > 1): $qs = $_GET; ?>
-        <nav class="mt-4">
-          <ul class="pagination justify-content-center mb-0">
-            <?php if ($page > 1): $qs['page'] = $page - 1; ?>
-              <li class="page-item">
-                <a class="page-link" href="?<?= e(http_build_query($qs)) ?>">
-                  <i class="bi bi-chevron-left"></i>
-                </a>
-              </li>
-            <?php endif; ?>
-            <?php for ($pn = 1; $pn <= $pages; $pn++): $qs['page'] = $pn; ?>
-              <li class="page-item <?= $pn === $page ? 'active' : '' ?>">
-                <a class="page-link" href="?<?= e(http_build_query($qs)) ?>"><?= $pn ?></a>
-              </li>
-            <?php endfor; ?>
-            <?php if ($page < $pages): $qs['page'] = $page + 1; ?>
-              <li class="page-item">
-                <a class="page-link" href="?<?= e(http_build_query($qs)) ?>">
-                  <i class="bi bi-chevron-right"></i>
-                </a>
-              </li>
-            <?php endif; ?>
-          </ul>
-        </nav>
-      <?php endif; ?>
+      <?php render_pagination($page, $pages, 'center'); ?>
 
     <?php else: ?>
       <div class="empty-state">
-        <i class="bi bi-search"></i>
-        <h3>No products found</h3>
-        <p>Try adjusting your filters or
-          <a href="<?= e(shop_url('shop.php')) ?>">browse all products</a>.</p>
+        <?php if ($catalogError): ?>
+          <i class="bi bi-wifi-off"></i>
+          <h3>Catalog temporarily unavailable</h3>
+          <p>We're having trouble loading products right now. Please try again in a few moments.</p>
+        <?php else: ?>
+          <i class="bi bi-search"></i>
+          <h3>No products found</h3>
+          <p>Try adjusting your filters or
+            <a href="<?= e(shop_url('shop.php')) ?>">browse all products</a>.</p>
+        <?php endif; ?>
       </div>
     <?php endif; ?>
 

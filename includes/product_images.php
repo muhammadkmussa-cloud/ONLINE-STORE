@@ -33,6 +33,22 @@ function product_image_filename_is_safe(string $filename): bool
         && preg_match('/^[A-Za-z0-9][A-Za-z0-9._-]{0,254}$/', $filename) === 1;
 }
 
+/** Filenames for every gallery image of a product (collect before rows cascade away). */
+function product_image_filenames(int $productId): array
+{
+    $stmt = db()->prepare('SELECT filename FROM product_images WHERE product_id = :product_id');
+    $stmt->execute([':product_id' => $productId]);
+    return array_map('strval', $stmt->fetchAll(PDO::FETCH_COLUMN));
+}
+
+/** Remove a product image file from disk if its name is safe. */
+function product_image_unlink_file(string $filename): void
+{
+    if (!product_image_filename_is_safe($filename)) return;
+    $path = UPLOADS_PATH . '/products/' . $filename;
+    if (is_file($path)) @unlink($path);
+}
+
 function product_image_upload_files(array $files): array
 {
     $files = normalize_product_image_files($files);
@@ -96,6 +112,7 @@ function product_image_upload_files(array $files): array
             $errors[] = $name . ': could not save the image.';
             continue;
         }
+        // Safety-net registration happens after the loop (see below).
         $stored[] = [
             'filename' => $filename,
             'original_name' => substr(basename($name), 0, 255),
@@ -104,7 +121,45 @@ function product_image_upload_files(array $files): array
         ];
     }
 
+    if ($stored) {
+        product_images_track_pending($stored);
+    }
+
     return ['files' => $stored, 'errors' => $errors];
+}
+
+// Pending uploads awaiting their DB insert; swept at shutdown so a crashed
+// request cannot leave orphaned image files on disk.
+$GLOBALS['__pending_product_images'] = [];
+
+/**
+ * Track freshly moved files. A single shutdown hook deletes anything still
+ * pending when the script ends without a matching mark_committed() call.
+ */
+function product_images_track_pending(array $stored): void
+{
+    static $hookRegistered = false;
+    foreach ($stored as $row) {
+        $GLOBALS['__pending_product_images'][] = (string)$row['filename'];
+    }
+    if (!$hookRegistered) {
+        $hookRegistered = true;
+        register_shutdown_function(function () {
+            foreach ($GLOBALS['__pending_product_images'] ?? [] as $pendingFile) {
+                product_image_unlink_file((string)$pendingFile);
+            }
+        });
+    }
+}
+
+/** Caller finished persisting these files: exempt them from the sweep. */
+function product_images_mark_committed(array $stored): void
+{
+    $committedNames = array_column($stored, 'filename');
+    $GLOBALS['__pending_product_images'] = array_values(array_diff(
+        $GLOBALS['__pending_product_images'] ?? [],
+        $committedNames
+    ));
 }
 
 function normalize_product_image_files(array $files): array

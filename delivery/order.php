@@ -8,7 +8,10 @@ $id = (int)($_GET['id'] ?? 0);
 $driver = current_driver();
 
 $stmt = db()->prepare(
-    "SELECT o.*, da.id AS assignment_id,
+    "SELECT o.id, o.order_number, o.customer_name, o.customer_phone,
+            o.shipping_address, o.shipping_city, o.shipping_zip,
+            o.shipping_country, o.notes, o.payment_method, o.status,
+            da.id AS assignment_id,
             COALESCE((SELECT h.status FROM delivery_status_history h
                       WHERE h.assignment_id = da.id ORDER BY h.id DESC LIMIT 1),
                      CASE WHEN da.status = 'completed' THEN 'delivered' ELSE 'assigned' END) AS delivery_status
@@ -17,7 +20,8 @@ $stmt = db()->prepare(
      INNER JOIN order_delivery_locations dl
        ON dl.order_id = o.id AND dl.delivery_method = 'delivery'
      WHERE o.id = :id AND da.driver_id = :driver_id AND da.status = 'assigned'
-     LIMIT 1"
+       AND o.status <> 'cancelled'
+      LIMIT 1"
 );
 $stmt->execute([':id' => $id, ':driver_id' => (int)$driver['id']]);
 $order = $stmt->fetch();
@@ -44,9 +48,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'updat
     require_csrf();
     $newStatus = (string)($_POST['status'] ?? '');
     $note = trim((string)($_POST['note'] ?? ''));
+    $currentDeliveryStatus = (string)$order['delivery_status'];
     $allowedDriverStatuses = ['picked_up', 'out_for_delivery', 'arrived', 'delivered', 'unable_to_deliver'];
+    $allowedNext = delivery_status_transitions()[$currentDeliveryStatus] ?? [];
     if (!in_array($newStatus, $allowedDriverStatuses, true)) {
         flash('danger', 'Invalid delivery status.');
+    } elseif (!in_array($newStatus, $allowedNext, true)) {
+        flash('danger', 'Cannot move from ' . delivery_status_label($currentDeliveryStatus)
+            . ' to ' . delivery_status_label($newStatus) . '. Please follow the workflow.');
     } elseif ($newStatus === 'unable_to_deliver' && $note === '') {
         flash('danger', 'Add a note explaining why the delivery could not be completed.');
     } else {
@@ -69,9 +78,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'updat
                 (int)$driver['id'],
                 $note
             );
-            $pdo->prepare(
-                "UPDATE orders SET status = :status WHERE id = :id"
-            )->execute([':status' => $orderStatus, ':id' => $id]);
+            $updateStmt = $pdo->prepare(
+                "UPDATE orders SET status = :status
+                 WHERE id = :id AND status <> 'cancelled'"
+            );
+            $updateStmt->execute([':status' => $orderStatus, ':id' => $id]);
+            if ($updateStmt->rowCount() !== 1) {
+                // The order changed state underneath us (e.g. cancelled by an
+                // admin mid-delivery): refuse to overwrite it.
+                throw new RuntimeException('Order state changed; update refused.');
+            }
             if ($newStatus === 'delivered') {
                 $pdo->prepare(
                     "UPDATE delivery_assignments SET status = 'completed', completed_at = UTC_TIMESTAMP()
@@ -109,7 +125,7 @@ include __DIR__ . '/includes/header.php';
     <?= csrf_field() ?>
     <input type="hidden" name="action" value="update_status">
     <select name="status" class="form-select">
-      <?php foreach (['picked_up','out_for_delivery','arrived','delivered','unable_to_deliver'] as $deliveryStatus): ?>
+      <?php foreach (($delivery_status_transitions()[(string)$order['delivery_status']] ?? []) as $deliveryStatus): ?>
         <option value="<?= $deliveryStatus ?>"><?= e(delivery_status_label($deliveryStatus)) ?></option>
       <?php endforeach; ?>
     </select>

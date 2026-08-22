@@ -25,7 +25,9 @@ define('DB_CHARSET', app_config_env('DB_CHARSET', 'utf8mb4'));
 
 // ----- App -----
 define('APP_NAME', app_config_env('APP_NAME', 'PHP Admin Panel'));
-define('APP_ENV', strtolower(app_config_env('APP_ENV', 'development')) === 'production' ? 'production' : 'development');
+// Fail SAFE: an unset APP_ENV means production (no error output, utilities
+// locked). Development environments must opt in explicitly via APP_ENV=development.
+define('APP_ENV', strtolower(app_config_env('APP_ENV', 'production')) === 'development' ? 'development' : 'production');
 
 // Auto-detect project root URL so it works whether the request is for /
 // (storefront), /admin/ (admin panel) or any other sub-folder.
@@ -50,8 +52,11 @@ if (APP_ENV === 'development') {
     error_reporting(E_ALL);
     ini_set('display_errors', '1');
 } else {
-    error_reporting(0);
+    // Production: visitors never see errors, but operators still can —
+    // suppress only the display, keep everything in the error log.
+    error_reporting(E_ALL);
     ini_set('display_errors', '0');
+    ini_set('log_errors', '1');
 }
 
 // ----- Secure session -----

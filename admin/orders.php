@@ -54,9 +54,9 @@ $allowedStatuses = ['pending', 'processing', 'shipped', 'completed', 'cancelled'
 $where = []; $params = [];
 if ($search !== '') {
     $where[] = '(order_number LIKE :q1 OR customer_name LIKE :q2 OR customer_email LIKE :q3)';
-    $params[':q1'] = "%$search%";
-    $params[':q2'] = "%$search%";
-    $params[':q3'] = "%$search%";
+    $params[':q1'] = like_pattern($search);
+    $params[':q2'] = like_pattern($search);
+    $params[':q3'] = like_pattern($search);
 }
 if (in_array($status, $allowedStatuses, true)) {
     $where[] = 'status = :st';
@@ -125,20 +125,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && ($_GET['export'] ?? '') === 'csv') {
     ]);
     foreach ($exportRows as $exportRow) {
         fputcsv($output, [
-            $exportRow['order_number'],
-            $exportRow['customer_name'],
-            $exportRow['customer_email'],
-            $exportRow['customer_phone'],
-            $exportRow['subtotal'],
-            $exportRow['shipping_fee'],
-            $exportRow['total'],
-            $exportRow['payment_method'],
-            $exportRow['status'],
-            $exportRow['created_at'],
-            $exportRow['payment_status'],
-            $exportRow['mpesa_receipt'],
-            delivery_method_label($exportRow['delivery_method'] ?: 'delivery'),
-            $exportRow['delivery_status'] ? delivery_status_label($exportRow['delivery_status']) : 'Unassigned',
+            csv_cell($exportRow['order_number']),
+            csv_cell($exportRow['customer_name']),
+            csv_cell($exportRow['customer_email']),
+            csv_cell($exportRow['customer_phone']),
+            csv_cell($exportRow['subtotal']),
+            csv_cell($exportRow['shipping_fee']),
+            csv_cell($exportRow['total']),
+            csv_cell($exportRow['payment_method']),
+            csv_cell($exportRow['status']),
+            csv_cell($exportRow['created_at']),
+            csv_cell($exportRow['payment_status']),
+            csv_cell($exportRow['mpesa_receipt']),
+            csv_cell(delivery_method_label($exportRow['delivery_method'] ?: 'delivery')),
+            csv_cell($exportRow['delivery_status'] ? delivery_status_label($exportRow['delivery_status']) : 'Unassigned'),
         ]);
     }
     fclose($output);
@@ -148,7 +148,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && ($_GET['export'] ?? '') === 'csv') {
 $stmt = db()->prepare("SELECT COUNT(*) FROM orders $whereSql");
 $stmt->execute($params);
 $total = (int) $stmt->fetchColumn();
-$pages = max(1, (int) ceil($total / $perPage));
+$pg = paginate($total, $perPage, (int)($_GET['page'] ?? 1));
+$page = $pg['page']; $pages = $pg['pages']; $offset = $pg['offset'];
 
 $stmt = db()->prepare(
     "SELECT o.*,
@@ -190,7 +191,11 @@ $stats = db()->query(
                         AND p.provider = 'mpesa'
                         AND p.status = 'successful'
                   ) THEN 0
-             ELSE o.total
+             ELSE GREATEST(o.total - COALESCE((
+                      SELECT SUM(r.amount) FROM mpesa_refunds r
+                      WHERE r.order_id = o.id
+                        AND r.status IN ('successful', 'refunded')
+                  ), 0), 0)
            END) AS revenue
      FROM orders o"
 )->fetch();
@@ -382,15 +387,7 @@ include __DIR__ . '/includes/header.php';
       </table>
     </div>
 
-    <?php if ($pages > 1): $qs = $_GET; ?>
-      <nav class="mt-3"><ul class="pagination justify-content-end mb-0">
-        <?php for ($pn = 1; $pn <= $pages; $pn++): $qs['page'] = $pn; ?>
-          <li class="page-item <?= $pn === $page ? 'active' : '' ?>">
-            <a class="page-link" href="?<?= e(http_build_query($qs)) ?>"><?= $pn ?></a>
-          </li>
-        <?php endfor; ?>
-      </ul></nav>
-    <?php endif; ?>
+    <?php render_pagination($page, $pages); ?>
   </div>
 </div>
 

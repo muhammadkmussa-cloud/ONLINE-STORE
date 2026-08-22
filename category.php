@@ -42,8 +42,8 @@ $pageTitle = $category['name'];
 
 $sort     = trim((string)($_GET['sort'] ?? 'newest'));
 $perPage  = 12;
-$page     = max(1, (int)($_GET['page'] ?? 1));
-$offset   = ($page - 1) * $perPage;
+$page     = 1;    // finalized by paginate() once the total is known
+$offset   = 0;
 
 switch ($sort) {
     case 'price_asc':
@@ -70,7 +70,8 @@ try {
     );
     $stmt->execute([':cid' => $category['id']]);
     $total = (int) $stmt->fetchColumn();
-    $pages = max(1, (int) ceil($total / $perPage));
+    $pg = paginate($total, $perPage, (int)($_GET['page'] ?? 1));
+    $page = $pg['page']; $pages = $pg['pages']; $offset = $pg['offset'];
 
     $stmt = db()->prepare(
         "SELECT * FROM products
@@ -88,8 +89,12 @@ try {
         $p['category_slug'] = $category['slug'];
     }
     unset($p);
+    $catalogError = false;
 } catch (Throwable $e) {
+    // An outage must not masquerade as an empty category.
+    error_log('Category products query failed: ' . $e->getMessage());
     $products = []; $total = 0; $pages = 1;
+    $catalogError = true;
 }
 
 include __DIR__ . '/includes/shop_header.php';
@@ -140,25 +145,21 @@ include __DIR__ . '/includes/shop_header.php';
         <?php endforeach; ?>
       </div>
 
-      <?php if ($pages > 1): $qs = $_GET; ?>
-        <nav class="mt-4">
-          <ul class="pagination justify-content-center mb-0">
-            <?php for ($pn = 1; $pn <= $pages; $pn++): $qs['page'] = $pn; ?>
-              <li class="page-item <?= $pn === $page ? 'active' : '' ?>">
-                <a class="page-link" href="?<?= e(http_build_query($qs)) ?>"><?= $pn ?></a>
-              </li>
-            <?php endfor; ?>
-          </ul>
-        </nav>
-      <?php endif; ?>
+      <?php render_pagination($page, $pages, 'center'); ?>
 
     <?php else: ?>
       <div class="empty-state">
-        <i class="bi bi-bag-x"></i>
-        <h3>No products in this category yet</h3>
-        <a href="<?= e(shop_url('shop.php')) ?>" class="btn btn-primary">
-          Browse all products
-        </a>
+        <?php if ($catalogError): ?>
+          <i class="bi bi-wifi-off"></i>
+          <h3>Catalog temporarily unavailable</h3>
+          <p>We're having trouble loading this category right now. Please try again shortly.</p>
+        <?php else: ?>
+          <i class="bi bi-bag-x"></i>
+          <h3>No products in this category yet</h3>
+          <a href="<?= e(shop_url('shop.php')) ?>" class="btn btn-primary">
+            Browse all products
+          </a>
+        <?php endif; ?>
       </div>
     <?php endif; ?>
   </div>

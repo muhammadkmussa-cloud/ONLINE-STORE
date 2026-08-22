@@ -34,12 +34,20 @@ function require_driver_login(): void
     }
     try {
         $stmt = db()->prepare(
-            "SELECT status FROM users WHERE id = :id AND role = 'delivery_driver' LIMIT 1"
+            "SELECT status, session_epoch FROM users WHERE id = :id AND role = 'delivery_driver' LIMIT 1"
         );
         $stmt->execute([':id' => (int)$_SESSION['driver']['id']]);
-        if ($stmt->fetchColumn() !== 'active') {
+        $row = $stmt->fetch();
+        if (!$row || $row['status'] !== 'active') {
             logout_driver();
             flash('danger', 'Your driver account is disabled.');
+            header('Location: ' . driver_url('login.php'));
+            exit;
+        }
+        // A password reset bumps session_epoch: pre-reset sessions die here.
+        if ((int)($_SESSION['driver']['session_epoch'] ?? 0) !== (int)$row['session_epoch']) {
+            logout_driver();
+            flash('warning', 'Your password was changed. Please log in again.');
             header('Location: ' . driver_url('login.php'));
             exit;
         }
@@ -59,35 +67,12 @@ function driver_login_ip(): string
 
 function driver_login_is_rate_limited(string $email, string $ip): bool
 {
-    try {
-        $stmt = db()->prepare(
-            "SELECT COUNT(*) FROM driver_login_attempts
-             WHERE email = :email AND ip_address = :ip AND successful = 0
-               AND attempted_at >= DATE_SUB(UTC_TIMESTAMP(), INTERVAL 15 MINUTE)"
-        );
-        $stmt->execute([':email' => $email, ':ip' => $ip]);
-        return (int)$stmt->fetchColumn() >= 5;
-    } catch (Throwable $e) {
-        // Fail closed when the rate-limit store is unavailable.
-        return true;
-    }
+    return auth_rate_limit_exceeded('driver_login_attempts', $email, $ip);
 }
 
 function record_driver_login_attempt(string $email, string $ip, bool $successful): void
 {
-    try {
-        db()->prepare('DELETE FROM driver_login_attempts WHERE attempted_at < DATE_SUB(UTC_TIMESTAMP(), INTERVAL 2 DAY)')
-            ->execute();
-        db()->prepare(
-            'INSERT INTO driver_login_attempts (email, ip_address, successful) VALUES (:email, :ip, :successful)'
-        )->execute([
-            ':email' => $email,
-            ':ip' => $ip,
-            ':successful' => $successful ? 1 : 0,
-        ]);
-    } catch (Throwable $e) {
-        // Login result must not expose database details.
-    }
+    auth_record_login_attempt('driver_login_attempts', $email, $ip, $successful);
 }
 
 /** Return ok, invalid, or rate_limited without revealing account existence. */
@@ -98,11 +83,16 @@ function attempt_driver_login(string $email, string $password): string
     if (driver_login_is_rate_limited($email, $ip)) return 'rate_limited';
 
     $stmt = db()->prepare(
-        "SELECT id, name, email, password, role, status, phone
+        "SELECT id, name, email, password, role, status, phone, session_epoch
          FROM users WHERE email = :email AND role = 'delivery_driver' LIMIT 1"
     );
     $stmt->execute([':email' => $email]);
     $driver = $stmt->fetch();
+    if (!$driver) {
+        // Burn the same bcrypt cost as a real check so response timing cannot
+        // reveal whether an email belongs to a driver account.
+        password_verify($password, '$2y$10$zg4KxXlio1BYDLP4HFvEVuG7YfsY16C5q4O2FFOWDsrfUzIb6uIxO');
+    }
     if (!$driver || $driver['status'] !== 'active'
         || !password_verify($password, $driver['password'])) {
         record_driver_login_attempt($email, $ip, false);
@@ -111,6 +101,7 @@ function attempt_driver_login(string $email, string $password): string
 
     record_driver_login_attempt($email, $ip, true);
     session_regenerate_id(true);
+    unset($_SESSION['csrf_token']);
     unset($_SESSION['user']);
     $_SESSION['driver'] = [
         'id' => (int)$driver['id'],
@@ -118,6 +109,7 @@ function attempt_driver_login(string $email, string $password): string
         'email' => $driver['email'],
         'role' => 'delivery_driver',
         'phone' => $driver['phone'],
+        'session_epoch' => (int)($driver['session_epoch'] ?? 0),
     ];
     $_SESSION['driver_last_activity'] = time();
     log_activity('driver.login', 'Delivery driver logged in');

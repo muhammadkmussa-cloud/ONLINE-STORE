@@ -135,10 +135,31 @@ function mpesa_enabled_by_admin(): bool
     return setting('mpesa_enabled', '0') === '1';
 }
 
+/**
+ * Single source of truth for M-Pesa usability: would M-Pesa be available
+ * with the given admin-enabled flag? Both current availability
+ * (mpesa_is_available) and proposed-config validation route through here so
+ * their predicates can never drift apart.
+ */
+function mpesa_would_be_available(bool $enabledByAdmin, ?string $proposedCurrencyCode = null): bool
+{
+    $errors = mpesa_configuration_errors();
+    if ($proposedCurrencyCode !== null && strtoupper(trim($proposedCurrencyCode)) === 'KES') {
+        // The operator is simultaneously fixing the currency setting.
+        $errors = array_values(array_filter(
+            $errors,
+            static function (string $error): bool {
+                return strpos($error, 'Set the store currency code to KES') === false;
+            }
+        ));
+    }
+    return $enabledByAdmin && !$errors;
+}
+
 /** True only when the admin enabled M-Pesa and all safety checks pass. */
 function mpesa_is_available(): bool
 {
-    return mpesa_enabled_by_admin() && !mpesa_configuration_errors();
+    return mpesa_would_be_available(mpesa_enabled_by_admin());
 }
 
 /** Configuration required for an admin-initiated Daraja reversal. */
@@ -302,12 +323,44 @@ function mpesa_http_json(
     return $response;
 }
 
+/** Read a cached OAuth token; null on absence/expiry/any IO problem. */
+function mpesa_token_cache_read(string $file): ?string
+{
+    $raw = @file_get_contents($file);
+    if ($raw === false || strpos($raw, '|') === false) {
+        return null;
+    }
+    [$expiresAt, $token] = explode('|', $raw, 2);
+    if ((int)$expiresAt <= time() || $token === '') {
+        return null;
+    }
+    return $token;
+}
+
+/** Best-effort token cache write; failures simply disable caching. */
+function mpesa_token_cache_write(string $file, string $token, int $expiresAt): void
+{
+    if (@file_put_contents($file, $expiresAt . '|' . $token, LOCK_EX) !== false) {
+        @chmod($file, 0600);
+    }
+}
+
 function mpesa_access_token(): string
 {
     $config = mpesa_config();
     $errors = mpesa_configuration_errors();
     if ($errors) {
         throw new MpesaException('M-Pesa is not configured: ' . implode(' ', $errors));
+    }
+
+    // Daraja tokens live about an hour upstream. Cache them in the system
+    // temp directory (keyed by environment + consumer key, mode 0600) so
+    // bursts of pushes/queries don't mint a fresh OAuth call every time.
+    $cacheFile = sys_get_temp_dir() . '/mpesa-token-'
+        . hash('sha256', $config['environment'] . ':' . $config['consumer_key']) . '.cache';
+    $cached = mpesa_token_cache_read($cacheFile);
+    if ($cached !== null) {
+        return $cached;
     }
 
     $credentials = base64_encode($config['consumer_key'] . ':' . $config['consumer_secret']);
@@ -322,7 +375,11 @@ function mpesa_access_token(): string
     if (empty($response['access_token'])) {
         throw new MpesaException('M-Pesa did not return an access token.', true);
     }
-    return (string)$response['access_token'];
+    $token = (string)$response['access_token'];
+    // Refresh a minute early; never trust a bogus/non-numeric expiresIn.
+    $expiresIn = is_numeric($response['expiresIn'] ?? null) ? (int)$response['expiresIn'] : 3599;
+    mpesa_token_cache_write($cacheFile, $token, time() + max(60, $expiresIn - 60));
+    return $token;
 }
 
 /** Initiate one Lipa na M-Pesa Online / STK Push request. */
@@ -559,7 +616,9 @@ function mpesa_refundable_amount(array $payment): float
 
 function mpesa_refund_idempotency_key(int $paymentId, string $token): string
 {
-    return hash('sha256', 'mpesa-refund:' . session_id() . ':' . $paymentId . ':' . $token);
+    // Deliberately session-independent: a retry from a new session/device
+    // must dedupe against the original attempt, not mint a fresh key.
+    return hash('sha256', 'mpesa-refund:' . $paymentId . ':' . $token);
 }
 
 /** Create a locked, auditable refund request without calling the provider. */
@@ -766,7 +825,7 @@ function mpesa_process_reversal_callback(array $payload, bool $isTimeout = false
             "UPDATE mpesa_refunds SET
                status = :status,
                provider_result_code = :result_code,
-               provider_transaction_id = :provider_transaction_id,
+               provider_transaction_id = COALESCE(:provider_transaction_id, provider_transaction_id),
                provider_result_desc = :result_desc,
                failure_reason = :reason,
                callback_payload = :payload,
@@ -777,11 +836,13 @@ function mpesa_process_reversal_callback(array $payload, bool $isTimeout = false
         $stmt->execute([
             ':status'                  => $status,
             ':result_code'             => (string)$resultCode,
-            ':provider_transaction_id' => (string)($result['TransactionID'] ?? ''),
+            ':provider_transaction_id' => isset($result['TransactionID']) && (string)$result['TransactionID'] !== ''
+                ? (string)$result['TransactionID']
+                : null,
             ':result_desc'            => (string)($result['ResultDesc'] ?? ''),
             ':reason'                 => substr($reason, 0, 2000),
-            ':payload'                 => json_encode($payload, JSON_UNESCAPED_SLASHES),
-            ':id'                      => (int)$refund['id'],
+            ':payload'                => json_encode($payload, JSON_UNESCAPED_SLASHES),
+            ':id'                     => (int)$refund['id'],
         ]);
         $pdo->commit();
         return ['handled' => true, 'status' => $status];
@@ -872,8 +933,12 @@ function mpesa_mark_pending(int $paymentId, array $response): void
 
 function mpesa_record_initiation_error(int $paymentId, string $reason): void
 {
+    // Only annotate attempts still awaiting their first provider response.
+    // Without this guard a late initiation error could downgrade a payment
+    // that a callback has already moved to pending/successful.
     $stmt = db()->prepare(
-        "UPDATE payments SET status = 'initiated', failure_reason = :reason WHERE id = :id"
+        "UPDATE payments SET status = 'initiated', failure_reason = :reason
+         WHERE id = :id AND status = 'initiated'"
     );
     $stmt->execute([':reason' => substr($reason, 0, 2000), ':id' => $paymentId]);
 }
@@ -942,6 +1007,37 @@ function mpesa_mark_terminal(int $paymentId, string $status, string $reason): vo
         if ($pdo->inTransaction()) $pdo->rollBack();
         throw $e;
     }
+}
+
+/**
+ * Release stock held by M-Pesa attempts that can no longer complete:
+ * pending prompts past their expires_at, and initiated pushes that never
+ * progressed within a 15-minute grace window. Cheap enough to call on
+ * every checkout view; also suitable as a periodic cron target.
+ */
+function mpesa_sweep_expired_payments(int $limit = 25): int
+{
+    $stmt = db()->prepare(
+        "SELECT id FROM payments
+         WHERE (status = 'pending' AND expires_at IS NOT NULL AND expires_at < UTC_TIMESTAMP())
+            OR (status = 'initiated' AND initiated_at < DATE_SUB(UTC_TIMESTAMP(), INTERVAL 15 MINUTE))
+         ORDER BY id
+         LIMIT :lim"
+    );
+    $stmt->bindValue(':lim', $limit, PDO::PARAM_INT);
+    $stmt->execute();
+    $ids = $stmt->fetchAll(PDO::FETCH_COLUMN);
+
+    $swept = 0;
+    foreach ($ids as $id) {
+        try {
+            mpesa_mark_terminal((int)$id, 'expired', 'Payment window elapsed before completion.');
+            $swept++;
+        } catch (Throwable $e) {
+            // Leave the row for the next sweep; never break the caller.
+        }
+    }
+    return $swept;
 }
 
 /** Keep a transient network/initiation problem visible without claiming payment failure. */
@@ -1072,9 +1168,15 @@ function mpesa_process_callback(array $payload): array
         }
 
         if ($verificationError !== '') {
+            // Keep the ORIGINAL merchant_request_id for forensics and record
+            // the mismatching callback value in the failure reason instead.
+            $reason = $verificationError;
+            if (!empty($payment['merchant_request_id'])
+                && $merchantRequestId !== (string)$payment['merchant_request_id']) {
+                $reason .= ' [callback MerchantRequestID: ' . substr($merchantRequestId, 0, 100) . ']';
+            }
             $pdo->prepare(
                 "UPDATE payments SET
-                   merchant_request_id = :merchant_request_id,
                    provider_result_code = :result_code,
                    failure_reason = :reason,
                    callback_payload = :payload,
@@ -1082,9 +1184,8 @@ function mpesa_process_callback(array $payload): array
                    completed_at = UTC_TIMESTAMP()
                  WHERE id = :id AND status <> 'successful'"
             )->execute([
-                ':merchant_request_id' => $merchantRequestId,
                 ':result_code'         => '0',
-                ':reason'              => $verificationError,
+                ':reason'              => substr($reason, 0, 2000),
                 ':payload'             => $rawPayload,
                 ':id'                  => (int)$payment['id'],
             ]);

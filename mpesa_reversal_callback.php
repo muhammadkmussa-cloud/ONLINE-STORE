@@ -15,7 +15,13 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 
 $config = mpesa_config();
-$providedToken = (string)($_GET['token'] ?? '');
+// Prefer a header token (kept out of access logs) but keep ?token= support
+// because Daraja's portal configures the callback URL as one static string.
+$headerToken = (string)($_SERVER['HTTP_AUTHORIZATION'] ?? $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ?? '');
+if (preg_match('/^Bearer\s+(.+)$/i', trim($headerToken), $m)) {
+    $headerToken = trim($m[1]);
+}
+$providedToken = $headerToken !== '' ? $headerToken : (string)($_GET['token'] ?? '');
 if ($config['reversal_callback_token'] === '' || $providedToken === ''
     || !hash_equals($config['reversal_callback_token'], $providedToken)) {
     http_response_code(403);

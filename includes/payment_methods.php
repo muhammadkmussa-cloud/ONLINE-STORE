@@ -74,16 +74,9 @@ function payment_method_configuration_errors(
     ?string $proposedCurrencyCode = null
 ): array {
     $errors = [];
-    $mpesaConfigurationErrors = mpesa_configuration_errors();
-    if ($proposedCurrencyCode !== null && strtoupper(trim($proposedCurrencyCode)) === 'KES') {
-        $mpesaConfigurationErrors = array_values(array_filter(
-            $mpesaConfigurationErrors,
-            static function (string $error): bool {
-                return strpos($error, 'Set the store currency code to KES') === false;
-            }
-        ));
-    }
-    $mpesaReady = $mpesaEnabled && !$mpesaConfigurationErrors;
+    // Same predicate that governs live availability, evaluated against the
+    // proposed flags — the two can no longer disagree.
+    $mpesaReady = mpesa_would_be_available($mpesaEnabled, $proposedCurrencyCode);
     if (!$mpesaReady && !$codEnabled) {
         $errors[] = 'At least one available payment method must remain enabled.';
     }

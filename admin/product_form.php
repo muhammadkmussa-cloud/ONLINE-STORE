@@ -19,7 +19,10 @@ if ($id) {
         flash('warning', 'Product not found.');
         admin_redirect('products.php');
     }
-    try { product_image_sync_legacy($id, $product['image'] ?? null); } catch (Throwable $e) {}
+    // One-time normalization of legacy rows on the edit view; failures are
+    // logged rather than swallowed, and never block the page.
+    try { product_image_sync_legacy($id, $product['image'] ?? null); }
+    catch (Throwable $e) { error_log('Legacy image sync failed for product ' . $id . ': ' . $e->getMessage()); }
 }
 
 $categories = db()->query('SELECT id, name FROM categories ORDER BY name ASC')->fetchAll();
@@ -67,6 +70,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!is_numeric($priceValue) || (float)$priceValue < 0) $errors[] = 'Price must be a non-negative number.';
     if ($salePrice !== '' && (!is_numeric($salePrice) || (float)$salePrice < 0)) $errors[] = 'Sale price must be a non-negative number (or blank).';
     if ($salePrice !== '' && is_numeric($salePrice) && is_numeric($priceValue) && (float)$salePrice >= (float)$priceValue) $errors[] = 'Sale price must be less than the regular price.';
+    if ($categoryId > 0) {
+        // A stale/removed category should say so, not surface as a cryptic
+        // foreign-key failure on save.
+        $catStmt = db()->prepare('SELECT id FROM categories WHERE id = :id LIMIT 1');
+        $catStmt->execute([':id' => $categoryId]);
+        if (!$catStmt->fetch()) {
+            $errors[] = 'The selected category no longer exists. Please pick another.';
+            $categoryId = 0;
+        }
+    }
     if (!in_array($status, ['active', 'inactive', 'draft'], true)) $status = 'active';
     if ($sku !== '') {
         $stmt = db()->prepare('SELECT id FROM products WHERE sku = :sku AND id <> :id LIMIT 1');
@@ -107,7 +120,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                      short_description=:sd, description=:d, price=:price, sale_price=:sp,
                      stock=:stock, status=:st, featured=:feat WHERE id=:id'
                 )->execute($data);
-                try { product_image_sync_legacy($id, $product['image'] ?? null); } catch (Throwable $e) {}
+    // One-time normalization of legacy rows; failures are visible in logs
+    // instead of silently vanishing, and never block the page.
+    try { product_image_sync_legacy($id, $product['image'] ?? null); }
+    catch (Throwable $e) { error_log('Legacy image sync failed for product ' . $id . ': ' . $e->getMessage()); }
             } else {
                 $pdo->prepare(
                     'INSERT INTO products
@@ -140,6 +156,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             }
             $pdo->commit();
+            // Rows are durable: exempt these files from the shutdown sweep.
+            product_images_mark_committed($uploadedFiles);
             log_activity($product['id'] ? 'product.update' : 'product.create', ($product['id'] ? 'Updated product ' : 'Created product ') . $name);
             if ($uploadedFiles) log_activity('product.image.upload', 'Uploaded ' . count($uploadedFiles) . ' image(s) for ' . $name);
             flash('success', $product['id'] ? 'Product updated.' : 'Product created.');

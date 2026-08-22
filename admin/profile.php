@@ -1,6 +1,6 @@
 <?php
 require_once __DIR__ . '/includes/auth.php';
-require_login();
+require_role('admin', 'editor');
 
 $pageTitle = 'My Profile';
 $me        = current_user();
@@ -28,6 +28,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['form'] ?? '') === 'profile
         $stmt = db()->prepare('SELECT id FROM users WHERE email = :e AND id <> :id');
         $stmt->execute([':e' => $email, ':id' => $user['id']]);
         if ($stmt->fetch()) $errors[] = 'That email is already in use.';
+    }
+
+    // Changing the account email requires re-entering the current password so
+    // a hijacked tab cannot silently transfer the account.
+    if (!$errors && $email !== (string)$user['email']
+        && !password_verify((string)($_POST['current_password'] ?? ''), $user['password'])) {
+        $errors[] = 'Enter your current password to confirm the email change.';
     }
 
     // Avatar upload (optional).
@@ -100,14 +107,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['form'] ?? '') === 'passwor
     if (!password_verify($current, $user['password'])) {
         $pwErrors[] = 'Current password is incorrect.';
     }
-    if (strlen($new) < 6)        $pwErrors[] = 'New password must be at least 6 characters.';
+    if (strlen($new) < 10)       $pwErrors[] = 'New password must be at least 10 characters.';
     if ($new !== $confirm)       $pwErrors[] = 'New passwords do not match.';
 
     if (!$pwErrors) {
         db()->prepare('UPDATE users SET password = :p WHERE id = :id')->execute([
-            ':p'  => password_hash($new, PASSWORD_BCRYPT),
+            ':p'  => password_hash($new, PASSWORD_BCRYPT, ['cost' => 12]),
             ':id' => $user['id'],
         ]);
+        // Rotate the session ID so a stolen pre-change cookie stops working.
+        session_regenerate_id(true);
         log_activity('password.change', 'Changed own password');
         flash('success', 'Password updated.');
         admin_redirect('profile.php');
@@ -161,6 +170,12 @@ include __DIR__ . '/includes/header.php';
               <label class="form-label">Email</label>
               <input type="email" name="email" class="form-control"
                      value="<?= e($user['email']) ?>" required>
+              <div class="form-text">Changing your email asks for your current password.</div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Current password (email changes only)</label>
+              <input type="password" name="current_password" class="form-control"
+                     autocomplete="current-password">
             </div>
             <div class="col-md-6">
               <label class="form-label">Phone</label>
@@ -203,11 +218,11 @@ include __DIR__ . '/includes/header.php';
             </div>
             <div class="col-md-4">
               <label class="form-label">New password</label>
-              <input type="password" name="new_password" class="form-control" minlength="6" required>
+              <input type="password" name="new_password" class="form-control" minlength="10" required>
             </div>
             <div class="col-md-4">
               <label class="form-label">Confirm new password</label>
-              <input type="password" name="confirm_password" class="form-control" minlength="6" required>
+              <input type="password" name="confirm_password" class="form-control" minlength="10" required>
             </div>
           </div>
 

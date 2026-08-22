@@ -39,21 +39,46 @@ Application Manager. At minimum set:
 - `APP_ENV=production`
 - `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASS`
 - `APP_TIMEZONE=Africa/Nairobi` (or the store timezone)
-- `INSTALL_TOKEN` and `MIGRATION_TOKEN` temporarily during setup
+- `INSTALL_TOKEN` only if you use the temporary installer window from
+  section 4 (`MIGRATION_TOKEN` is not needed — migrations run via phpMyAdmin)
 - Daraja values only when M-Pesa is being enabled
 
 Do not put secrets in customer-facing forms, JavaScript, Git, or activity logs.
 
 ## 4. One-time setup
 
-1. Open `admin/install.php?token=INSTALL_TOKEN` only while `APP_ENV` is not
-   production, or run the schema from a secure maintenance environment.
-2. Run `admin/migrate.php?token=MIGRATION_TOKEN`.
-3. Confirm the new tables exist, including `payments`, `mpesa_refunds`,
-   `order_delivery_locations`, `order_delivery_pricing`, `order_pickup_snapshots`,
+The production package does **not** contain `admin/install.php` or
+`admin/migrate.php` — the packaging script excludes them and refuses to build a
+ZIP that includes them, and both scripts also refuse to run while
+`APP_ENV=production`. Do not follow older checklists that tell you to open them
+on the server.
+
+1. Create the schema by importing the SQL files through cPanel → phpMyAdmin,
+   into the database created in step 2, in this order:
+   1. `sql/schema.sql`
+   2. `sql/migrations.sql`
+2. Create the first admin account. Pick ONE of:
+   - **Temporary installer window:** upload `admin/install.php` from your
+     developer checkout, temporarily set `APP_ENV=development` plus a strong
+     random `INSTALL_TOKEN` in the hosting environment, open
+     `admin/install.php?token=...` once, then immediately restore
+     `APP_ENV=production`, remove the token, and delete the uploaded file.
+   - **SQL directly:** generate a hash locally with
+     `php -r "echo password_hash('YOUR-PASSWORD', PASSWORD_BCRYPT);"` and
+     insert the admin row into `users` (`role='admin'`, `status='active'`).
+3. Confirm the expected tables exist, including `users`, `settings`,
+   `payments`, `mpesa_refunds`, `order_delivery_locations`,
+   `order_delivery_pricing`, `order_pickup_snapshots`,
    `delivery_assignments`, `delivery_status_history`, `product_images`,
    `order_donations`, and `order_access_tokens`.
-4. Delete `admin/install.php` and `admin/migrate.php` from the production document root.
+4. Ensure no copy of `admin/install.php` or `admin/migrate.php` remains in the
+   production document root.
+   > **Upgrading an existing installation:** `migrate.php` is intentionally
+   > not in Git (see `.gitignore`) because it is a one-time utility. Copy it
+   > from your developer checkout, run it once through the temporary
+   > development window described above, then delete it. It applies
+   > re-runnable SQL plus conditional column/index upgrades that
+   > `CREATE TABLE IF NOT EXISTS` cannot express on existing tables.
 5. Remove the temporary setup tokens from the hosting environment.
 6. Log in as admin and configure payment methods, pickup, delivery pricing,
    donations, drivers, and Daraja only as needed.

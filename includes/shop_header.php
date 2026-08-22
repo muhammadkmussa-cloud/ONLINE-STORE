@@ -17,12 +17,12 @@ $current = basename($_SERVER['PHP_SELF'] ?? '');
 <title><?= e($fullTitle) ?></title>
 <meta name="description" content="<?= e(setting('site_about', 'Shop the latest products.')) ?>">
 
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" integrity="sha384-tViUnnbYAV00FLIhhi3v/dWt3Jxw4gZQcNoSCxCIFNJVCx7/D55/wXsrNIRANwdD" crossorigin="anonymous">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="<?= e(url('assets/css/shop.css')) ?>">
+<link rel="stylesheet" href="<?= e(asset_url('assets/css/shop.css')) ?>">
 </head>
 <body>
 
@@ -36,13 +36,13 @@ $current = basename($_SERVER['PHP_SELF'] ?? '');
 
       <!-- Always-visible cart + mobile toggle (right side on small screens) -->
       <div class="d-flex align-items-center gap-2 order-lg-last">
-        <a href="<?= e(shop_url('wishlist.php')) ?>" class="wishlist-link" title="Wishlist">
+        <a href="<?= e(shop_url('wishlist.php')) ?>" class="wishlist-link" title="Wishlist" aria-label="Wishlist">
           <i class="bi bi-heart"></i>
           <?php $wishlistCount = wishlist_count(); if ($wishlistCount > 0): ?>
             <span class="cart-count"><?= $wishlistCount ?></span>
           <?php endif; ?>
         </a>
-        <a href="<?= e(shop_url('cart.php')) ?>" class="cart-link" title="Cart">
+        <a href="<?= e(shop_url('cart.php')) ?>" class="cart-link" title="Cart" aria-label="Shopping cart">
           <i class="bi bi-bag"></i>
           <?php $cnt = cart_count(); if ($cnt > 0): ?>
             <span class="cart-count"><?= $cnt ?></span>
@@ -67,7 +67,7 @@ $current = basename($_SERVER['PHP_SELF'] ?? '');
           </li>
           <?php if ($cats): ?>
             <li class="nav-item dropdown">
-              <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
+              <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown" aria-expanded="false">
                 Categories
               </a>
               <ul class="dropdown-menu">

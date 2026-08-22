@@ -17,9 +17,9 @@ $siteName  = setting('site_name', APP_NAME);
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title><?= e($pageTitle) ?> · <?= e($siteName) ?></title>
 
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
-<link rel="stylesheet" href="<?= e(url('assets/css/style.css')) ?>">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" integrity="sha384-tViUnnbYAV00FLIhhi3v/dWt3Jxw4gZQcNoSCxCIFNJVCx7/D55/wXsrNIRANwdD" crossorigin="anonymous">
+<link rel="stylesheet" href="<?= e(asset_url('assets/css/style.css')) ?>">
 </head>
 <body>
 <div class="app">
@@ -38,7 +38,7 @@ $siteName  = setting('site_name', APP_NAME);
       <h1 class="topbar-title"><?= e($pageTitle) ?></h1>
 
       <div class="ms-auto d-flex align-items-center gap-2">
-        <button class="btn btn-light btn-sm" id="themeToggle" title="Toggle theme">
+        <button class="btn btn-light btn-sm" id="themeToggle" title="Toggle theme" aria-label="Toggle color theme">
           <i class="bi bi-moon-stars"></i>
         </button>
 

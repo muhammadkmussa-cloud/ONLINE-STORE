@@ -2,7 +2,13 @@
 require_once __DIR__ . '/includes/auth.php';
 
 if (is_logged_in()) {
-    admin_redirect('dashboard.php');
+    if (has_role('admin', 'editor')) {
+        admin_redirect('dashboard.php');
+    }
+    // Authenticated but not staff: stop here instead of bouncing to a
+    // guarded page, which would create a guard→login→guard redirect loop.
+    http_response_code(403);
+    exit('This account does not have access to the admin panel.');
 }
 
 $errors = [];

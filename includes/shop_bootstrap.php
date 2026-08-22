@@ -27,20 +27,28 @@ function shop_active_categories(): array
                  ORDER BY name ASC"
             )->fetchAll();
         } catch (Throwable $e) {
+            error_log('Active categories query failed: ' . $e->getMessage());
             $cache = [];
         }
     }
     return $cache;
 }
 
-/** Effective price for a product (sale_price if set, otherwise price). */
+/**
+ * Effective price for a product: sale_price only counts as a real sale when
+ * it is positive AND strictly below the regular price. This keeps hero,
+ * cards, and cart pricing identical even if an admin misconfigures a sale
+ * price at or above the regular price.
+ */
 function product_effective_price(array $p): float
 {
+    $price = (float)($p['price'] ?? 0);
     if (isset($p['sale_price']) && $p['sale_price'] !== null
-        && (float)$p['sale_price'] > 0) {
+        && (float)$p['sale_price'] > 0
+        && (float)$p['sale_price'] < $price) {
         return (float)$p['sale_price'];
     }
-    return (float)($p['price'] ?? 0);
+    return $price;
 }
 
 /** True if the product is on sale. */
@@ -135,6 +143,7 @@ function cart_load(): array
         $stmt->execute($ids);
         $rows = $stmt->fetchAll();
     } catch (Throwable $e) {
+        error_log('Cart load failed: ' . $e->getMessage());
         return ['items' => [], 'subtotal' => 0.0];
     }
 
@@ -169,10 +178,14 @@ function cart_load(): array
 function generate_order_number(): string
 {
     $prefix = 'ORD-' . date('Ym') . '-';
+    // FOR UPDATE next-key-locks the matching range of the UNIQUE index, so
+    // two concurrent checkouts cannot compute the same next number; the
+    // second waits until the first commits and then reads the newer max.
     $stmt   = db()->prepare(
         "SELECT order_number FROM orders
          WHERE order_number LIKE :p
-         ORDER BY id DESC LIMIT 1"
+         ORDER BY id DESC LIMIT 1
+         FOR UPDATE"
     );
     $stmt->execute([':p' => $prefix . '%']);
     $last = $stmt->fetchColumn();
@@ -252,6 +265,7 @@ function wishlist_load(): array
         $stmt->execute($ids);
         $rows = $stmt->fetchAll();
     } catch (Throwable $e) {
+        error_log('Session product list load failed: ' . $e->getMessage());
         return [];
     }
 
@@ -309,6 +323,7 @@ function recently_viewed_products(int $limit = 6): array
         $stmt->execute($ids);
         $rows = $stmt->fetchAll();
     } catch (Throwable $e) {
+        error_log('Recently viewed products load failed: ' . $e->getMessage());
         return [];
     }
 

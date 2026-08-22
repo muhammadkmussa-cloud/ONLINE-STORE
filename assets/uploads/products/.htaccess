@@ -1,6 +1,16 @@
-# Allow images, deny PHP execution.
-Options -ExecCGI
-<FilesMatch "\.(php|phtml|php3|php4|php5|php7|phar)$">
+# Allow images, deny scripts and directory listing.
+Options -Indexes -ExecCGI
+<FilesMatch "(?i)\.(php|php[0-9]?|phtml|pht|phps|phar|inc|shtml|cgi|pl|py|jsp|asp|aspx|sh)$">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order deny,allow
+        Deny from all
+    </IfModule>
+</FilesMatch>
+# Never serve dotfiles (.htaccess, .user.ini, ...) from uploads.
+<FilesMatch "^\.">
     <IfModule mod_authz_core.c>
         Require all denied
     </IfModule>

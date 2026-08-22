@@ -154,7 +154,7 @@ The workspace was tested with PHP 8.4 and MariaDB 11.8. The final local checks i
 - Driver creation/login/disabled/rate-limit/assignment/status/authorization tests.
 - Order access-token privacy tests.
 - Admin/driver frontend render tests.
-- Installer/migration no-token guard tests.
+- Installer/migration no-token guard tests (NOT yet covered by tests/run.php — verify manually per docs/cpanel-deployment.md).
 - Production cookie/error-mode checks.
 - PHP built-in HTTP server checks with no warning/fatal entries in the server log.
 

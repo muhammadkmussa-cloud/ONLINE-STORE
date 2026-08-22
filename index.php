@@ -1,6 +1,24 @@
 <?php
 require_once __DIR__ . '/includes/shop_bootstrap.php';
 
+// ----- Newsletter subscribe -----
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'subscribe') {
+    require_csrf();
+    $email = strtolower(trim((string)($_POST['newsletter_email'] ?? '')));
+    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        flash('danger', 'Please enter a valid email address.');
+    } else {
+        try {
+            db()->prepare('INSERT IGNORE INTO newsletter_subscribers (email) VALUES (:email)')
+                ->execute([':email' => $email]);
+            flash('success', 'You are subscribed! We will only email store news.');
+        } catch (Throwable $e) {
+            flash('warning', 'Subscriptions are temporarily unavailable. Please try again later.');
+        }
+    }
+    redirect('index.php#newsletter');
+}
+
 $pageTitle = 'Home';
 $siteName  = setting('site_name', 'Bilal Store');
 
@@ -34,16 +52,28 @@ try {
     $totalProducts   = (int) db()->query("SELECT COUNT(*) FROM products WHERE status='active'")->fetchColumn();
     $totalCategories = (int) db()->query("SELECT COUNT(*) FROM categories WHERE status='active'")->fetchColumn();
 
-    // Pick a hero spotlight product (first featured, fallback to first latest).
+    // Pick a hero spotlight product (first featured, fallback to first latest)
+    // and remember which, so the badge only claims "Featured" when true.
     $spotlight = $featured[0] ?? ($latest[0] ?? null);
+    $spotlightIsFeatured = isset($featured[0]);
 } catch (Throwable $e) {
     $featured = $latest = $categories = [];
     $totalProducts = $totalCategories = 0;
     $spotlight = null;
+    $spotlightIsFeatured = false;
 }
 
 include __DIR__ . '/includes/shop_header.php';
 ?>
+
+<?php foreach (get_flashes() as $f): ?>
+  <div class="container mt-3">
+    <div class="alert alert-<?= e($f['type']) ?> alert-dismissible fade show mb-0">
+      <?= e($f['message']) ?>
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+  </div>
+<?php endforeach; ?>
 
 <!-- =================== HERO =================== -->
 <section class="hero">
@@ -83,7 +113,11 @@ include __DIR__ . '/includes/shop_header.php';
             </div>
             <div class="hero-card-body">
               <span class="hero-card-tag">
-                <i class="bi bi-star-fill"></i> Featured pick
+                <?php if ($spotlightIsFeatured): ?>
+                  <i class="bi bi-star-fill"></i> Featured pick
+                <?php else: ?>
+                  <i class="bi bi-lightning-charge-fill"></i> Just arrived
+                <?php endif; ?>
               </span>
               <h4><?= e($spotlight['name']) ?></h4>
               <div class="hero-card-price">
@@ -325,10 +359,11 @@ include __DIR__ . '/includes/shop_header.php';
       <div class="newsletter-icon"><i class="bi bi-envelope-paper"></i></div>
       <h3>Stay in the loop</h3>
       <p>Get exclusive deals and product news — straight to your inbox.</p>
-      <form class="newsletter-form"
-            onsubmit="event.preventDefault(); this.reset(); this.querySelector('button').innerHTML='<i class=\'bi bi-check2\'></i> Subscribed!';">
-        <input type="email" class="form-control form-control-lg"
-               placeholder="you@example.com" required>
+      <form class="newsletter-form" method="post" action="<?= e(shop_url('index.php#newsletter')) ?>">
+        <?= csrf_field() ?>
+        <input type="hidden" name="action" value="subscribe">
+        <input type="email" name="newsletter_email" class="form-control form-control-lg"
+               placeholder="you@example.com" required maxlength="191">
         <button class="btn btn-primary btn-lg">
           <i class="bi bi-send"></i> Subscribe
         </button>

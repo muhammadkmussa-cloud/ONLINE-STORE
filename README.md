@@ -117,17 +117,20 @@ For XAMPP on macOS / Linux / Windows:
 
 2. Start Apache and MySQL from the XAMPP control panel.
 
-3. If your MySQL `root` user has a password, edit `config/config.php`:
+3. Database credentials are read from environment variables by
+   `config/config.php` (`app_config_env()`), not hardcoded constants. The
+   XAMPP defaults — host `127.0.0.1`, user `root`, empty password, database
+   `php_admin_panel` — work as-is on a fresh install. To override any of them,
+   set `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, or `DB_PASS` in the server
+   environment before PHP boots (shell export, vhost config, or whatever your
+   process manager loads).
 
-   ```php
-   define('DB_HOST', '127.0.0.1');
-   define('DB_PORT', '3306');
-   define('DB_NAME', 'php_admin_panel');
-   define('DB_USER', 'root');
-   define('DB_PASS', 'your-password');   // empty string is fine for fresh XAMPP
-   ```
-
-4. Set a temporary random `INSTALL_TOKEN` in the server environment, then open:
+4. The one-time scripts refuse to run once the app considers itself
+   production — and unset `APP_ENV` now defaults to production for safety.
+   For local setup, opt into development mode plus a setup token:
+   - XAMPP/Apache: add `SetEnv APP_ENV development` to your vhost config.
+   - PHP built-in server: `APP_ENV=development php -S localhost:8000`
+   Then set a temporary random `INSTALL_TOKEN` in the same environment and open:
 
    ```
    http://localhost/bilal-store/admin/install.php?token=YOUR_INSTALL_TOKEN
@@ -486,13 +489,16 @@ text in a `t('...')` helper backed by a static array per locale.
 
 **"Could not save image" on product upload.** On macOS XAMPP, Apache runs
 as the `daemon` user, but `assets/uploads/` is probably owned by your
-local user. Loosen permissions:
+local user. Give ownership to the web-server user instead of opening the
+folder to the world:
 
 ```bash
-chmod -R 777 assets/uploads
+sudo chown -R daemon assets/uploads      # XAMPP on macOS (www-data on Linux)
+chmod -R 775 assets/uploads
 ```
 
-We tried `755` first and it bit us, hence the wider permission.
+World-writable (`777`) upload folders let any local account plant or tamper
+with files — avoid them even locally.
 
 **Migration won't run.** The script splits `sql/migrations.sql` on
 semicolons and runs each statement separately. If it fails partway
@@ -503,9 +509,12 @@ through and you've fixed the SQL, re-run it — every statement uses
 directory's entry point and redirects to `login.php` or `dashboard.php`
 based on session state.
 
-**Sessions expire mid-session.** `config/config.php` sets cookie params
-and `session.gc_maxlifetime` to roughly two hours. Bump those values
-higher if your shop has long browse times.
+**Sessions expire mid-session.** `config/config.php` sets hardened cookie
+params but does not change `session.gc_maxlifetime` (your PHP default
+applies — typically 24 minutes of GC inactivity). Separately, the app
+enforces its own idle timeouts: two hours without a request for staff and
+driver portals (`require_login()` / `require_driver_login()`). Adjust those
+constants if your shop needs longer idle windows.
 
 **Styling looks off.** Hard-refresh (Cmd-Shift-R / Ctrl-F5). The two CSS
 files are not versioned and your browser caches them aggressively.
@@ -516,10 +525,15 @@ The project ships set up for local development. Before deploying:
 
 1. Switch to a dedicated MySQL user (not `root`) with only the privileges
    this database actually needs.
-2. In `config/config.php`, set `APP_ENV` to `'production'`. That hides
-   PHP error output from visitors.
-3. Serve over HTTPS. There are no HSTS headers built in — add them at
-   the web-server level.
+2. Set `APP_ENV=production` in the **server environment** (cPanel env vars,
+   Apache `SetEnv`, or your process manager). `config/config.php` reads it via
+   `app_config_env()` — there is no literal to flip inside the file. This hides
+   PHP error output from visitors and arms production-only safeguards such as
+   the installer lockout and HSTS.
+3. Serve over HTTPS. HSTS is sent automatically once `APP_ENV=production` and
+   HTTPS are both active (`config/config.php` sends
+   `Strict-Transport-Security`); layer any stricter policies at the web-server
+   level if you need them.
 4. Confirm `install.php` and `migrate.php` are deleted from `admin/`.
 5. If your host conflates document root with writable storage, move
    `assets/uploads/` to a writable, non-executable path and update

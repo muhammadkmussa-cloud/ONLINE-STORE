@@ -10,7 +10,8 @@ $pageTitle = 'Settings';
 $keys = ['site_name', 'site_email', 'site_about', 'items_per_page',
          'currency_code', 'currency_symbol', 'store_pickup_address',
          'store_pickup_instructions', 'store_latitude', 'store_longitude',
-         'delivery_price_per_km', 'charity_name', 'charity_description',
+         'delivery_price_per_km', 'delivery_max_radius_km',
+         'charity_name', 'charity_description',
          'charity_website', 'donation_presets'];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -27,6 +28,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $newStoreLatitude = trim((string)($_POST['store_latitude'] ?? setting('store_latitude', '')));
     $newStoreLongitude = trim((string)($_POST['store_longitude'] ?? setting('store_longitude', '')));
     $newDeliveryRate = trim((string)($_POST['delivery_price_per_km'] ?? setting('delivery_price_per_km', '0.00')));
+    $newMaxRadius = trim((string)($_POST['delivery_max_radius_km'] ?? setting('delivery_max_radius_km', '25')));
+    $deliveryErrors = delivery_pricing_settings_errors($newStoreLatitude, $newStoreLongitude, $newDeliveryRate, $newMaxRadius);
+
+    // Basic sanity for the remaining free-text fields.
+    $settingsErrors = [];
+    $newSiteEmail = trim((string)($_POST['site_email'] ?? setting('site_email', '')));
+    $newCurrencyCode = strtoupper(trim((string)($_POST['currency_code'] ?? setting('currency_code', 'USD'))));
+    $newCurrencySymbol = trim((string)($_POST['currency_symbol'] ?? setting('currency_symbol', '$')));
+    if ($newSiteEmail !== '' && !filter_var($newSiteEmail, FILTER_VALIDATE_EMAIL)) {
+        $settingsErrors[] = 'Contact email must be a valid email address.';
+    }
+    if (!preg_match('/^[A-Z]{3,5}$/', $newCurrencyCode)) {
+        $settingsErrors[] = 'Currency code must be 3-5 letters (e.g. KES, USD).';
+    }
+    if (mb_strlen($newCurrencySymbol) > 5 || $newCurrencySymbol === '') {
+        $settingsErrors[] = 'Currency symbol is required and must be at most 5 characters.';
+    }
     $newDonationsEnabled = isset($_POST['donations_enabled']);
     $newCharityName = trim((string)($_POST['charity_name'] ?? ''));
     $newCharityDescription = trim((string)($_POST['charity_description'] ?? ''));
@@ -54,9 +72,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             break;
         }
     }
-    if ($paymentErrors || $deliveryErrors || $donationErrors) {
+    if ($paymentErrors || $deliveryErrors || $donationErrors || $settingsErrors) {
 
-        foreach (array_merge($paymentErrors, $deliveryErrors) as $configurationError) {
+        foreach (array_merge($paymentErrors, $deliveryErrors, $donationErrors, $settingsErrors) as $configurationError) {
             flash('danger', $configurationError);
         }
         admin_redirect('settings.php');
@@ -74,6 +92,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $v = trim((string)($_POST[$k] ?? ''));
             if ($k === 'items_per_page') {
                 $v = (string)max(5, min(100, (int)$v));
+            }
+            if ($k === 'currency_code') {
+                // Save the normalized uppercase form.
+                $v = $newCurrencyCode;
             }
             update_setting($k, $v);
         }
@@ -182,20 +204,26 @@ include __DIR__ . '/includes/header.php';
           </div>
 
           <div class="row g-3 mb-3">
-            <div class="col-md-4">
+            <div class="col-md-3">
               <label class="form-label">Store latitude</label>
               <input type="text" name="store_latitude" class="form-control"
                      value="<?= e($values['store_latitude']) ?>" placeholder="e.g. -4.043477">
             </div>
-            <div class="col-md-4">
+            <div class="col-md-3">
               <label class="form-label">Store longitude</label>
               <input type="text" name="store_longitude" class="form-control"
                      value="<?= e($values['store_longitude']) ?>" placeholder="e.g. 39.668206">
             </div>
-            <div class="col-md-4">
+            <div class="col-md-3">
               <label class="form-label">Delivery price / km</label>
               <input type="number" name="delivery_price_per_km" class="form-control"
                      min="0" step="0.01" value="<?= e($values['delivery_price_per_km'] ?: '0.00') ?>">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Max delivery radius (km)</label>
+              <input type="number" name="delivery_max_radius_km" class="form-control"
+                     min="1" step="1" value="<?= e($values['delivery_max_radius_km'] ?: '25') ?>">
+              <div class="form-text">Locations beyond this distance are refused.</div>
             </div>
           </div>
           <?php $deliverySettings = delivery_pricing_settings(); ?>

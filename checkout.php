@@ -30,6 +30,14 @@ if (empty($cart['items'])) {
     redirect('cart.php');
 }
 
+// Best-effort sweep: free stock held by abandoned M-Pesa attempts so it is
+// available to the buyer in front of us. Never blocks checkout on failure.
+try {
+    mpesa_sweep_expired_payments();
+} catch (Throwable $e) {
+    // Sweep is opportunistic; ignore problems.
+}
+
 $deliveryPricingSettings = delivery_pricing_settings();
 $deliveryPricingReady = $deliveryPricingSettings['ready'];
 $deliveryQuote = null;
@@ -156,7 +164,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $deliveryFee = $deliveryQuote['delivery_fee'];
             $grandTotal = $cart['subtotal'] + $deliveryFee;
         } catch (Throwable $e) {
-            $errors[] = $e->getMessage();
+            // Our validators throw InvalidArgumentException with deliberate,
+            // customer-safe guidance (e.g. outside the delivery radius).
+            // Anything else is detailed only outside production.
+            $errors[] = ($e instanceof InvalidArgumentException || APP_ENV === 'development')
+                ? $e->getMessage()
+                : 'We could not calculate your delivery options. Please check your details and try again.';
         }
     }
 
@@ -164,6 +177,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($donationsAvailable) {
         try {
             $donationAmount = donation_amount_normalize($_POST['donation_amount'] ?? '0');
+            // Proportionality guard: a tip larger than the basket itself is a
+            // typo or abuse — especially on COD where the driver collects cash.
+            if ($donationAmount > $cart['subtotal']) {
+                $donationAmount = 0.0;
+                $donationError = 'Donations cannot exceed the order subtotal.';
+                $errors[] = $donationError;
+            }
             $old['donation_amount'] = number_format($donationAmount, 2, '.', '');
         } catch (Throwable $e) {
             $donationError = $e->getMessage();
@@ -222,7 +242,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             try {
                 mpesa_amount_from_order($grandTotal);
             } catch (Throwable $e) {
-                $errors[] = $e->getMessage();
+                $errors[] = APP_ENV === 'development'
+                    ? $e->getMessage()
+                    : 'This payment method is temporarily unavailable. Please choose another or try again shortly.';
             }
         }
     }
@@ -859,7 +881,11 @@ include __DIR__ . '/includes/shop_header.php';
         const subtotal = Number(pricingSummary.dataset.subtotal || 0);
         const flatFee = Number(pricingSummary.dataset.flatFee || 0);
         const symbol = pricingSummary.dataset.currencySymbol || '';
-        const formatMoney = value => symbol + Number(value).toFixed(2);
+        // Mirror PHP price(): "SYM 1,234.56" (space + thousands separators).
+        const formatMoney = value => {
+            const n = Number(value).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            return symbol ? symbol + ' ' + n : n;
+        };
         const donation = donationInput ? Math.max(0, Number(donationInput.value || 0)) : 0;
         if (donationSummary) donationSummary.textContent = donation > 0 ? formatMoney(donation) : 'None';
 

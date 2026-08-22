@@ -105,7 +105,7 @@ body {
     font-size: .72rem;
     text-transform: uppercase;
     letter-spacing: .08em;
-    color: #9ca3af;
+    color: #6b7280; /* WCAG AA on white (was #9ca3af ≈2.5:1) */
     margin: 1rem .75rem .25rem;
 }
 .sidebar-nav .nav-link {
@@ -250,7 +250,7 @@ body {
 .badge.role-editor  { background:#0ea5e9; }
 .badge.role-user    { background:#6b7280; }
 .badge.status-active   { background:#10b981; }
-.badge.status-inactive { background:#9ca3af; }
+.badge.status-inactive { background:#6b7280; } /* white text passes AA on this gray */
 
 /* ---------- Sidebar backdrop (mobile) ---------- */
 .sidebar-backdrop {

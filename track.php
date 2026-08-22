@@ -58,6 +58,13 @@ if ($orderNumber !== '' || $email !== '') {
             $errors[] = "We couldn't find an order matching that number and email. "
                       . "Please double-check both and try again.";
         } else {
+            // Legacy orders predate per-order access tokens. Mint one now so
+            // this visit hands the customer a secure link and later visits
+            // require it instead of a guessable number + email pair.
+            $mintedToken = order_access_token_ensure((int)$order['id']);
+            if ($mintedToken !== null) {
+                $accessToken = $mintedToken;
+            }
             $stmt = db()->prepare("SELECT * FROM order_items WHERE order_id = :id");
             $stmt->execute([':id' => $order['id']]);
             $items = $stmt->fetchAll();

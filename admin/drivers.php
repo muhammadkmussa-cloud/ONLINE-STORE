@@ -44,7 +44,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $params = [':name' => $name, ':email' => $email, ':phone' => $phone, ':status' => $status, ':id' => $id];
                     if ($password !== '') {
                         $sql .= ', password = :password';
-                        $params[':password'] = password_hash($password, PASSWORD_BCRYPT);
+                        $params[':password'] = password_hash($password, PASSWORD_BCRYPT, ['cost' => 12]);
                     }
                     $sql .= ' WHERE id = :id AND role = \'delivery_driver\'';
                     db()->prepare($sql)->execute($params);
@@ -59,7 +59,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 )->execute([
                     ':name' => $name,
                     ':email' => $email,
-                    ':password' => password_hash($password, PASSWORD_BCRYPT),
+                    ':password' => password_hash($password, PASSWORD_BCRYPT, ['cost' => 12]),
                     ':status' => $status,
                     ':phone' => $phone,
                 ]);
@@ -94,8 +94,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             );
             $stmt->execute([':id' => $id]);
             if ($driver = $stmt->fetch()) {
-                db()->prepare('UPDATE users SET password = :password WHERE id = :id')
-                    ->execute([':password' => password_hash($password, PASSWORD_BCRYPT), ':id' => $id]);
+                // session_epoch bump invalidates any driver sessions that
+                // were created before this reset (checked per request).
+                db()->prepare('UPDATE users SET password = :password, session_epoch = session_epoch + 1 WHERE id = :id')
+                    ->execute([':password' => password_hash($password, PASSWORD_BCRYPT, ['cost' => 12]), ':id' => $id]);
                 log_activity('driver.password_reset', 'Reset password for delivery driver ' . $driver['email']);
                 flash('success', 'Driver password reset.');
             } else {
@@ -105,18 +107,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if (!$errors) admin_redirect('drivers.php');
+
+    // Failed save: repopulate the form with what the operator typed
+    // (never the password) so nothing is lost.
+    $failedDriverSave = false;
+    if ($action === 'save_driver') {
+        $failedDriverSave = true;
+        $editDriver = [
+            'id'     => $id,
+            'name'   => $name,
+            'email'  => $email,
+            'phone'  => $phone,
+            'status' => $status,
+        ];
+        $_GET['edit'] = $id > 0 ? $id : '';
+    }
 }
 
 $editId = (int)($_GET['edit'] ?? 0);
-$editDriver = ['id' => 0, 'name' => '', 'email' => '', 'phone' => '', 'status' => 'active'];
-if ($editId > 0) {
-    $stmt = db()->prepare(
-        "SELECT id, name, email, phone, status FROM users
-         WHERE id = :id AND role = 'delivery_driver' LIMIT 1"
-    );
-    $stmt->execute([':id' => $editId]);
-    if ($found = $stmt->fetch()) $editDriver = $found;
+if (empty($failedDriverSave)) {
+    // Normal render (no failed save): load defaults or the DB row.
+    $editDriver = ['id' => 0, 'name' => '', 'email' => '', 'phone' => '', 'status' => 'active'];
+    if ($editId > 0) {
+        $stmt = db()->prepare(
+            "SELECT id, name, email, phone, status FROM users
+             WHERE id = :id AND role = 'delivery_driver' LIMIT 1"
+        );
+        $stmt->execute([':id' => $editId]);
+        if ($found = $stmt->fetch()) $editDriver = $found;
+    }
 }
+// A failed save leaves the operator's typed values in $editDriver untouched.
 
 $search = trim((string)($_GET['q'] ?? ''));
 $statusFilter = trim((string)($_GET['status'] ?? ''));
@@ -124,9 +145,9 @@ $where = ["role = 'delivery_driver'"];
 $params = [];
 if ($search !== '') {
     $where[] = '(name LIKE :q1 OR email LIKE :q2 OR phone LIKE :q3)';
-    $params[':q1'] = "%$search%";
-    $params[':q2'] = "%$search%";
-    $params[':q3'] = "%$search%";
+    $params[':q1'] = like_pattern($search);
+    $params[':q2'] = like_pattern($search);
+    $params[':q3'] = like_pattern($search);
 }
 if (in_array($statusFilter, ['active', 'inactive'], true)) {
     $where[] = 'status = :status';

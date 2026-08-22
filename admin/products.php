@@ -8,15 +8,24 @@ $pageTitle = 'Products';
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'delete') {
     require_csrf();
     require_role('admin');
+    require_once __DIR__ . '/../includes/product_images.php';
 
     $id   = (int)($_POST['id'] ?? 0);
     $stmt = db()->prepare('SELECT name, image FROM products WHERE id = :id');
     $stmt->execute([':id' => $id]);
     if ($p = $stmt->fetch()) {
-        if ($p['image'] && file_exists(UPLOADS_PATH . '/products/' . $p['image'])) {
-            @unlink(UPLOADS_PATH . '/products/' . $p['image']);
-        }
+        // Collect gallery filenames before the FK cascade removes the rows.
+        // Delete the DB rows FIRST: if that fails nothing was removed from
+        // disk and a retry recovers cleanly; file loss is the lesser evil
+        // compared to rows pointing at deleted files.
+        $galleryFiles = product_image_filenames($id);
         db()->prepare('DELETE FROM products WHERE id = :id')->execute([':id' => $id]);
+        if ($p['image']) {
+            product_image_unlink_file((string)$p['image']);
+        }
+        foreach ($galleryFiles as $galleryFile) {
+            product_image_unlink_file($galleryFile);
+        }
         log_activity('product.delete', 'Deleted product ' . $p['name']);
         flash('success', 'Product deleted.');
     } else {
@@ -37,8 +46,8 @@ $offset   = ($page - 1) * $perPage;
 $where = []; $params = [];
 if ($search !== '') {
     $where[] = '(p.name LIKE :q1 OR p.sku LIKE :q2)';
-    $params[':q1'] = "%$search%";
-    $params[':q2'] = "%$search%";
+    $params[':q1'] = like_pattern($search);
+    $params[':q2'] = like_pattern($search);
 }
 if ($catId > 0) {
     $where[] = 'p.category_id = :cid';
@@ -56,7 +65,8 @@ $whereSql = $where ? ('WHERE ' . implode(' AND ', $where)) : '';
 $stmt = db()->prepare("SELECT COUNT(*) FROM products p $whereSql");
 $stmt->execute($params);
 $total = (int) $stmt->fetchColumn();
-$pages = max(1, (int) ceil($total / $perPage));
+$pg = paginate($total, $perPage, (int)($_GET['page'] ?? 1));
+$page = $pg['page']; $pages = $pg['pages']; $offset = $pg['offset'];
 
 $stmt = db()->prepare(
     "SELECT p.*, c.name AS category_name
@@ -206,15 +216,7 @@ include __DIR__ . '/includes/header.php';
       </table>
     </div>
 
-    <?php if ($pages > 1): $qs = $_GET; ?>
-      <nav class="mt-3"><ul class="pagination justify-content-end mb-0">
-        <?php for ($pn = 1; $pn <= $pages; $pn++): $qs['page'] = $pn; ?>
-          <li class="page-item <?= $pn === $page ? 'active' : '' ?>">
-            <a class="page-link" href="?<?= e(http_build_query($qs)) ?>"><?= $pn ?></a>
-          </li>
-        <?php endfor; ?>
-      </ul></nav>
-    <?php endif; ?>
+    <?php render_pagination($page, $pages); ?>
   </div>
 </div>
 
