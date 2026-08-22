@@ -1,0 +1,16 @@
+# Disable directory listings.
+Options -Indexes
+
+# Never serve Git metadata or environment files if a deployment keeps them beside the app.
+<FilesMatch "^\.(git|env)">
+    Require all denied
+</FilesMatch>
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteRule (^|/)\.git(?:/|$) - [F,L,NC]
+</IfModule>
+
+# Default file.
+DirectoryIndex index.php
+
+# Pretty-error page suppression in production is up to you.
