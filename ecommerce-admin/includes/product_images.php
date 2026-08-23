@@ -167,6 +167,13 @@ function normalize_product_image_files(array $files): array
     if (isset($files['name']) && is_array($files['name'])) {
         $normalized = [];
         foreach ($files['name'] as $index => $name) {
+            // Skip empty slots of an unselected multiple-file input: PHP
+            // still reports them as UPLOAD_ERR_NO_FILE entries, which would
+            // otherwise block every save that does not add a new image.
+            if ((string)$name === ''
+                && (int)($files['error'][$index] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
+                continue;
+            }
             $normalized[] = [
                 'name' => $name,
                 'type' => $files['type'][$index] ?? '',

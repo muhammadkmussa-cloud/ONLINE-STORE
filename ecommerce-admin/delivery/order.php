@@ -84,9 +84,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'updat
             );
             $updateStmt->execute([':status' => $orderStatus, ':id' => $id]);
             if ($updateStmt->rowCount() !== 1) {
-                // The order changed state underneath us (e.g. cancelled by an
-                // admin mid-delivery): refuse to overwrite it.
-                throw new RuntimeException('Order state changed; update refused.');
+                // MySQL counts only *changed* rows: writing an identical
+                // status is a legitimate no-op, so distinguish it from a
+                // cancelled/missing order before refusing the update.
+                $checkStmt = $pdo->prepare('SELECT status FROM orders WHERE id = :id');
+                $checkStmt->execute([':id' => $id]);
+                $currentStatus = $checkStmt->fetchColumn();
+                if ($currentStatus === false || $currentStatus !== $orderStatus) {
+                    // The order changed state underneath us (e.g. cancelled
+                    // by an admin mid-delivery): refuse to overwrite it.
+                    throw new RuntimeException('Order state changed; update refused.');
+                }
             }
             if ($newStatus === 'delivered') {
                 $pdo->prepare(
@@ -125,7 +133,7 @@ include __DIR__ . '/includes/header.php';
     <?= csrf_field() ?>
     <input type="hidden" name="action" value="update_status">
     <select name="status" class="form-select">
-      <?php foreach (($delivery_status_transitions()[(string)$order['delivery_status']] ?? []) as $deliveryStatus): ?>
+      <?php foreach ((delivery_status_transitions()[(string)$order['delivery_status']] ?? []) as $deliveryStatus): ?>
         <option value="<?= $deliveryStatus ?>"><?= e(delivery_status_label($deliveryStatus)) ?></option>
       <?php endforeach; ?>
     </select>

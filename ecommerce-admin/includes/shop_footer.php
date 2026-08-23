@@ -54,6 +54,7 @@
     <hr>
     <div class="text-center copyright small">
       &copy; <?= date('Y') ?> <?= e(setting('site_name', APP_NAME)) ?>. All rights reserved.
+      · Powered by <a href="https://roidigitalsolutions.com" target="_blank" rel="noopener noreferrer">ROI Digital Solutions</a>
     </div>
   </div>
 </footer>

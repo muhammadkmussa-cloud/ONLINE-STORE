@@ -401,6 +401,41 @@ TEST_DB_NAME=php_admin_panel_test php tests/run.php
 The suite never calls real M-Pesa endpoints and drops only its dedicated test
 database. See [`tests/README.md`](tests/README.md) for configuration.
 
+## Demo data seeder
+
+For local development and manual testing you can populate the store with a
+large, realistic dataset:
+
+```bash
+php scripts/seed_demo_data.php
+```
+
+The script **wipes and replaces** demo tables (categories, products, orders,
+reviews, delivery assignments, newsletter subscribers — plus generated product
+gallery images under `assets/uploads/products/`) and then inserts:
+
+- 8 categories and ~64 products (mix of active/draft/inactive, sale prices,
+  featured flags, 2–3 generated gallery images each)
+- 40 COD orders spread over the last 30 days across every status, with order
+  items, delivery/pickup snapshots, distance-pricing rows, access tokens, and
+  driver assignments + status history where appropriate
+- 45 product reviews in approved/pending/rejected states
+- Distance-pricing settings so Delivery checkout works immediately
+
+It also resets these accounts on every run:
+
+| Account | Email | Password |
+| ------- | ----- | -------- |
+| Admin   | `admin@alasusa.test` | `Admin@12345` |
+| Drivers | `driver1@alasusa.test` … `driver3@alasusa.test` | `Driver@12345` |
+
+Seeded orders use deterministic tracking tokens:
+`seedtok-<order id>-<substr(sha256('seed<id>'),0,24)>`, e.g.
+`/track.php?order=ORD-202608-0001&email=<customer email>&token=seedtok-1-…`.
+The script prints example tokens when it finishes.
+
+Never run the seeder against production; it truncates data.
+
 ## cPanel deployment
 
 See [`docs/cpanel-deployment.md`](docs/cpanel-deployment.md) for the complete

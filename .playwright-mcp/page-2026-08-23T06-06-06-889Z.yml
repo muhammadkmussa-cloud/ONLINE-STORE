@@ -1,0 +1,208 @@
+- generic [ref=f4e2]:
+  - complementary [ref=f4e3]:
+    - link " al asusa Store" [ref=f4e5] [cursor=pointer]:
+      - /url: /admin/dashboard.php
+      - generic [ref=f4e6]: 
+      - generic [ref=f4e8]: al asusa Store
+    - navigation [ref=f4e9]:
+      - generic [ref=f4e10]: Main
+      - link " Dashboard" [ref=f4e11] [cursor=pointer]:
+        - /url: /admin/dashboard.php
+        - generic [ref=f4e12]: 
+        - generic [ref=f4e13]: Dashboard
+      - link " View store " [ref=f4e14] [cursor=pointer]:
+        - /url: /
+        - generic [ref=f4e15]: 
+        - generic [ref=f4e16]: View store
+        - generic [ref=f4e17]: 
+      - generic [ref=f4e18]: E-commerce
+      - link " Orders 10" [ref=f4e19] [cursor=pointer]:
+        - /url: /admin/orders.php
+        - generic [ref=f4e20]: 
+        - generic [ref=f4e21]: Orders
+        - generic [ref=f4e22]: "10"
+      - link " Products" [ref=f4e23] [cursor=pointer]:
+        - /url: /admin/products.php
+        - generic [ref=f4e24]: 
+        - generic [ref=f4e25]: Products
+      - link " Categories" [ref=f4e26] [cursor=pointer]:
+        - /url: /admin/categories.php
+        - generic [ref=f4e27]: 
+        - generic [ref=f4e28]: Categories
+      - link " Reviews 12" [ref=f4e29] [cursor=pointer]:
+        - /url: /admin/reviews.php
+        - generic [ref=f4e30]: 
+        - generic [ref=f4e31]: Reviews
+        - generic [ref=f4e32]: "12"
+      - link " Activity log" [ref=f4e33] [cursor=pointer]:
+        - /url: /admin/activity.php
+        - generic [ref=f4e34]: 
+        - generic [ref=f4e35]: Activity log
+      - generic [ref=f4e36]: Operations
+      - link " Delivery drivers" [ref=f4e37] [cursor=pointer]:
+        - /url: /admin/drivers.php
+        - generic [ref=f4e38]: 
+        - generic [ref=f4e39]: Delivery drivers
+      - generic [ref=f4e40]: Account
+      - link " Profile" [ref=f4e41] [cursor=pointer]:
+        - /url: /admin/profile.php
+        - generic [ref=f4e42]: 
+        - generic [ref=f4e43]: Profile
+      - link " Settings" [ref=f4e44] [cursor=pointer]:
+        - /url: /admin/settings.php
+        - generic [ref=f4e45]: 
+        - generic [ref=f4e46]: Settings
+      - button " Logout" [ref=f4e48] [cursor=pointer]:
+        - generic [ref=f4e49]: 
+        - generic [ref=f4e50]: Logout
+  - main [ref=f4e51]:
+    - navigation [ref=f4e52]:
+      - text: 
+      - heading "Settings" [level=1] [ref=f4e53]
+      - generic [ref=f4e54]:
+        - button "Toggle color theme" [ref=f4e55] [cursor=pointer]:
+          - generic [ref=f4e56]: 
+        - generic [ref=f4e57]:
+          - button "Store Admin" [ref=f4e58] [cursor=pointer]
+          - text:   
+    - generic [ref=f4e60]:
+      - alert [ref=f4e61]:
+        - text: Settings and payment methods saved.
+        - button [ref=f4e62] [cursor=pointer]
+      - generic [ref=f4e63]:
+        - generic [ref=f4e66]:
+          - heading "General settings" [level=5] [ref=f4e67]
+          - paragraph [ref=f4e68]:
+            - text: These values are stored in the
+            - code [ref=f4e69]: settings
+            - text: table.
+          - generic [ref=f4e70]:
+            - generic [ref=f4e71]:
+              - generic [ref=f4e72]: Site name
+              - textbox [ref=f4e73]: al asusa Store
+            - generic [ref=f4e74]:
+              - generic [ref=f4e75]: Contact email
+              - textbox [ref=f4e76]: admin@example.com
+            - generic [ref=f4e77]:
+              - generic [ref=f4e78]: About
+              - textbox [ref=f4e79]: A modern PHP admin panel.
+            - generic [ref=f4e80]:
+              - generic [ref=f4e81]: Items per page (lists)
+              - spinbutton [ref=f4e82]: "20"
+              - generic [ref=f4e83]: Used by user list, activity log, etc.
+            - separator [ref=f4e84]
+            - heading " E-commerce" [level=6] [ref=f4e85]:
+              - generic [ref=f4e86]: 
+              - text: E-commerce
+            - generic [ref=f4e87]:
+              - generic [ref=f4e88]:
+                - generic [ref=f4e89]: Currency code
+                - textbox [ref=f4e90]: KES
+                - generic [ref=f4e91]: e.g. USD, EUR, GBP, PKR.
+              - generic [ref=f4e92]:
+                - generic [ref=f4e93]: Currency symbol
+                - textbox [ref=f4e94]: ksh
+                - generic [ref=f4e95]: e.g. $, €, £, ₨.
+            - generic [ref=f4e96]:
+              - generic [ref=f4e97]:
+                - generic [ref=f4e98]: Store latitude
+                - textbox "e.g. -4.043477" [ref=f4e99]: "-1.292066"
+              - generic [ref=f4e100]:
+                - generic [ref=f4e101]: Store longitude
+                - textbox "e.g. 39.668206" [ref=f4e102]: "36.821945"
+              - generic [ref=f4e103]:
+                - generic [ref=f4e104]: Delivery price / km
+                - spinbutton [ref=f4e105]: "2.50"
+              - generic [ref=f4e106]:
+                - generic [ref=f4e107]: Max delivery radius (km)
+                - spinbutton [ref=f4e108]: "25"
+                - generic [ref=f4e109]: Locations beyond this distance are refused.
+            - generic [ref=f4e110]: Distance pricing is active for Delivery.
+            - generic [ref=f4e111]:
+              - generic [ref=f4e112]: Store pickup address
+              - textbox [ref=f4e113]: Bilal Plaza, Moi Avenue, Nairobi CBD
+              - generic [ref=f4e114]: Captured as a snapshot on every pickup order.
+            - generic [ref=f4e115]:
+              - generic [ref=f4e116]: Store pickup instructions
+              - textbox [ref=f4e117]: Collect your order from the store after confirmation.
+              - generic [ref=f4e118]: Shown to customers when Store Pickup is selected.
+            - separator [ref=f4e119]
+            - heading " Charity donations" [level=6] [ref=f4e120]:
+              - generic [ref=f4e121]: 
+              - text: Charity donations
+            - generic [ref=f4e122]:
+              - switch "Enable optional charity donations" [checked] [ref=f4e123]
+              - generic [ref=f4e124]: Enable optional charity donations
+            - generic [ref=f4e125]:
+              - generic [ref=f4e126]:
+                - generic [ref=f4e127]: Charity name
+                - textbox "e.g. Mombasa Community Fund" [ref=f4e128]: Mombasa Community Fund
+              - generic [ref=f4e129]:
+                - generic [ref=f4e130]: Charity website
+                - textbox "https://example.org" [ref=f4e131]
+              - generic [ref=f4e132]:
+                - generic [ref=f4e133]: Charity description
+                - textbox [ref=f4e134]: Supporting education for children on the coast.
+              - generic [ref=f4e135]:
+                - generic [ref=f4e136]: Donation presets
+                - textbox "50,100,250" [ref=f4e137]
+                - generic [ref=f4e138]: Comma-separated positive amounts in the store currency. Customers can also enter a custom amount.
+            - generic [ref=f4e139]: Donations are enabled for Mombasa Community Fund.
+            - separator [ref=f4e140]
+            - heading " Payment methods" [level=6] [ref=f4e141]:
+              - generic [ref=f4e142]: 
+              - text: Payment methods
+            - paragraph [ref=f4e143]: These settings apply to every new checkout. Historical orders retain their original payment method.
+            - generic [ref=f4e145]:
+              - switch " Payment on Delivery Collect payment when the order is delivered." [checked] [ref=f4e146]
+              - generic [ref=f4e147]:
+                - strong [ref=f4e148]:
+                  - generic [ref=f4e149]: 
+                  - text: Payment on Delivery
+                - generic [ref=f4e150]: Collect payment when the order is delivered.
+            - generic [ref=f4e152]:
+              - switch " M-Pesa Send a server-verified STK Push payment prompt." [ref=f4e153]
+              - generic [ref=f4e154]:
+                - strong [ref=f4e155]:
+                  - generic [ref=f4e156]: 
+                  - text: M-Pesa
+                - generic [ref=f4e157]: Send a server-verified STK Push payment prompt.
+            - generic [ref=f4e159]:
+              - switch " Bank Transfer Coming soon — retained for historical orders but unavailable for new checkout." [disabled]
+              - generic [ref=f4e160]:
+                - strong [ref=f4e161]:
+                  - generic [ref=f4e162]: 
+                  - text: Bank Transfer
+                - generic [ref=f4e163]: Coming soon — retained for historical orders but unavailable for new checkout.
+            - generic [ref=f4e164]: M-Pesa credentials are never stored in this database. Configure them as server environment variables. At least one supported method must remain enabled.
+            - generic [ref=f4e165]:
+              - strong [ref=f4e166]: "M-Pesa is not ready:"
+              - list [ref=f4e167]:
+                - listitem [ref=f4e168]: MPESA_CONSUMER_KEY is missing.
+                - listitem [ref=f4e169]: MPESA_CONSUMER_SECRET is missing.
+                - listitem [ref=f4e170]: MPESA_SHORTCODE is missing.
+                - listitem [ref=f4e171]: MPESA_PASSKEY is missing.
+                - listitem [ref=f4e172]: MPESA_CALLBACK_URL is missing.
+                - listitem [ref=f4e173]: MPESA_CALLBACK_TOKEN is missing.
+            - generic [ref=f4e174]: Reversal settings will be checked after the base M-Pesa configuration is complete.
+            - button " Save settings" [ref=f4e175] [cursor=pointer]:
+              - generic [ref=f4e176]: 
+              - text: Save settings
+        - generic [ref=f4e179]:
+          - heading "Tips" [level=6] [ref=f4e180]
+          - list [ref=f4e181]:
+            - listitem [ref=f4e182]: The site name and logo appear in the sidebar and login screen.
+            - listitem [ref=f4e183]:
+              - text: Set
+              - code [ref=f4e184]: currency_code
+              - text: to
+              - code [ref=f4e185]: KES
+              - text: before enabling M-Pesa.
+            - listitem [ref=f4e186]: Configure store coordinates and price/km to activate distance pricing.
+            - listitem [ref=f4e187]: Configure Daraja secrets in server environment variables, not this form.
+            - listitem [ref=f4e188]: Reversal credentials require an encrypted SecurityCredential and HTTPS result URLs.
+            - listitem [ref=f4e189]:
+              - text: Delete
+              - code [ref=f4e190]: install.php
+              - text: after first install.
+    - generic [ref=f4e191]: © 2026 al asusa Store · Built with PHP & Bootstrap.

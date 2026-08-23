@@ -35,7 +35,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Only allow redirects to pages within this storefront.
     $returnTo = trim((string)($_POST['return_to'] ?? 'wishlist.php'));
     $safeReturn = preg_match(
-        '#^(?:index|shop|category|product|wishlist)\.php(?:\?[^#]*)?(?:#[A-Za-z0-9_-]+)?$#',
+        '~^(?:index|shop|category|product|wishlist)\.php(?:\?[^#]*)?(?:#[A-Za-z0-9_-]+)?$~',
         $returnTo
     );
     redirect($safeReturn ? $returnTo : 'wishlist.php');

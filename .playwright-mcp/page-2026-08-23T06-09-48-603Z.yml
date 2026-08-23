@@ -1,0 +1,174 @@
+- generic [ref=f9e2]:
+  - complementary [ref=f9e3]:
+    - link " al asusa Store" [ref=f9e5] [cursor=pointer]:
+      - /url: /admin/dashboard.php
+      - generic [ref=f9e6]: 
+      - generic [ref=f9e8]: al asusa Store
+    - navigation [ref=f9e9]:
+      - generic [ref=f9e10]: Main
+      - link " Dashboard" [ref=f9e11] [cursor=pointer]:
+        - /url: /admin/dashboard.php
+        - generic [ref=f9e12]: 
+        - generic [ref=f9e13]: Dashboard
+      - link " View store " [ref=f9e14] [cursor=pointer]:
+        - /url: /
+        - generic [ref=f9e15]: 
+        - generic [ref=f9e16]: View store
+        - generic [ref=f9e17]: 
+      - generic [ref=f9e18]: E-commerce
+      - link " Orders 10" [ref=f9e19] [cursor=pointer]:
+        - /url: /admin/orders.php
+        - generic [ref=f9e20]: 
+        - generic [ref=f9e21]: Orders
+        - generic [ref=f9e22]: "10"
+      - link " Products" [ref=f9e23] [cursor=pointer]:
+        - /url: /admin/products.php
+        - generic [ref=f9e24]: 
+        - generic [ref=f9e25]: Products
+      - link " Categories" [ref=f9e26] [cursor=pointer]:
+        - /url: /admin/categories.php
+        - generic [ref=f9e27]: 
+        - generic [ref=f9e28]: Categories
+      - link " Reviews 12" [ref=f9e29] [cursor=pointer]:
+        - /url: /admin/reviews.php
+        - generic [ref=f9e30]: 
+        - generic [ref=f9e31]: Reviews
+        - generic [ref=f9e32]: "12"
+      - link " Activity log" [ref=f9e33] [cursor=pointer]:
+        - /url: /admin/activity.php
+        - generic [ref=f9e34]: 
+        - generic [ref=f9e35]: Activity log
+      - generic [ref=f9e36]: Operations
+      - link " Delivery drivers" [ref=f9e37] [cursor=pointer]:
+        - /url: /admin/drivers.php
+        - generic [ref=f9e38]: 
+        - generic [ref=f9e39]: Delivery drivers
+      - generic [ref=f9e40]: Account
+      - link " Profile" [ref=f9e41] [cursor=pointer]:
+        - /url: /admin/profile.php
+        - generic [ref=f9e42]: 
+        - generic [ref=f9e43]: Profile
+      - link " Settings" [ref=f9e44] [cursor=pointer]:
+        - /url: /admin/settings.php
+        - generic [ref=f9e45]: 
+        - generic [ref=f9e46]: Settings
+      - button " Logout" [ref=f9e48] [cursor=pointer]:
+        - generic [ref=f9e49]: 
+        - generic [ref=f9e50]: Logout
+  - main [ref=f9e51]:
+    - navigation [ref=f9e52]:
+      - text: 
+      - heading "Edit product" [level=1] [ref=f9e53]
+      - generic [ref=f9e54]:
+        - button "Toggle color theme" [ref=f9e55] [cursor=pointer]:
+          - generic [ref=f9e56]: 
+        - generic [ref=f9e57]:
+          - button "Store Admin" [ref=f9e58] [cursor=pointer]
+          - text:   
+    - generic [ref=f9e60]:
+      - alert [ref=f9e61]:
+        - text: Primary image updated.
+        - button [ref=f9e62] [cursor=pointer]
+      - generic [ref=f9e64]:
+        - generic [ref=f9e65]:
+          - generic [ref=f9e67]:
+            - heading "Product details" [level=5] [ref=f9e68]
+            - generic [ref=f9e69]:
+              - generic [ref=f9e70]:
+                - generic [ref=f9e71]: Name *
+                - textbox [ref=f9e72]: Playwright Test Gadget
+              - generic [ref=f9e73]:
+                - generic [ref=f9e74]: SKU
+                - textbox [ref=f9e75]: PW-TEST-001
+              - generic [ref=f9e76]:
+                - generic [ref=f9e77]: Slug (auto if blank)
+                - textbox [ref=f9e78]: playwright-test-gadget
+              - generic [ref=f9e79]:
+                - generic [ref=f9e80]: Category
+                - combobox [ref=f9e81]:
+                  - option "— None —"
+                  - option "Beauty & Health"
+                  - option "Books"
+                  - option "Electronics" [selected]
+                  - option "Fashion"
+                  - option "Groceries"
+                  - option "Home & Kitchen"
+                  - option "Sports & Fitness"
+                  - option "Toys & Games"
+              - generic [ref=f9e82]:
+                - generic [ref=f9e83]: Short description
+                - textbox [ref=f9e84]: A product created by the automated Playwright test.
+              - generic [ref=f9e85]:
+                - generic [ref=f9e86]: Full description
+                - textbox [ref=f9e87]: This product was uploaded through the admin panel by the Playwright browser test to verify image upload, editing and deletion all work end to end.
+          - generic [ref=f9e89]:
+            - heading "Pricing & stock" [level=5] [ref=f9e90]
+            - generic [ref=f9e91]:
+              - generic [ref=f9e92]:
+                - generic [ref=f9e93]: Price (ksh) *
+                - spinbutton [ref=f9e94]: "4999.99"
+              - generic [ref=f9e95]:
+                - generic [ref=f9e96]: Sale price
+                - spinbutton [ref=f9e97]: "3999.99"
+              - generic [ref=f9e98]:
+                - generic [ref=f9e99]: Stock quantity
+                - spinbutton [ref=f9e100]: "25"
+        - generic [ref=f9e101]:
+          - generic [ref=f9e103]:
+            - heading "Status" [level=6] [ref=f9e104]
+            - combobox [ref=f9e105]:
+              - option "Active" [selected]
+              - option "Draft"
+              - option "Inactive"
+            - generic [ref=f9e106]:
+              - checkbox " Featured product" [checked] [ref=f9e107]
+              - generic [ref=f9e108]:
+                - generic [ref=f9e109]: 
+                - text: Featured product
+          - generic [ref=f9e111]:
+            - heading "Product images" [level=6] [ref=f9e112]
+            - img "Primary image preview" [ref=f9e114]
+            - button "Choose File" [ref=f9e115] [cursor=pointer]
+            - text: Select multiple JPG, PNG, GIF, or WEBP files. Max 4 MB each, max 8000×8000 px.
+          - generic [ref=f9e117]:
+            - button " Save changes" [ref=f9e118] [cursor=pointer]:
+              - generic [ref=f9e119]: 
+              - text: Save changes
+            - link "Cancel" [ref=f9e120] [cursor=pointer]:
+              - /url: /admin/products.php
+            - link " View on store" [ref=f9e121] [cursor=pointer]:
+              - /url: /product.php?slug=playwright-test-gadget
+              - generic [ref=f9e122]: 
+              - text: View on store
+      - generic [ref=f9e124]:
+        - generic [ref=f9e125]:
+          - heading "Gallery images" [level=5] [ref=f9e126]
+          - generic [ref=f9e127]: 3 images
+        - generic [ref=f9e128]:
+          - generic [ref=f9e130]:
+            - img "Playwright Test Gadget" [ref=f9e131]
+            - generic "test-img-2.jpg" [ref=f9e132]
+            - generic [ref=f9e133]: Primary
+            - generic [ref=f9e134]:
+              - generic [ref=f9e135]:
+                - button "" [disabled]
+              - button "" [ref=f9e137] [cursor=pointer]
+              - button "" [ref=f9e140] [cursor=pointer]
+          - generic [ref=f9e143]:
+            - img "Playwright Test Gadget" [ref=f9e144]
+            - generic "test-img-1.jpg" [ref=f9e145]
+            - generic [ref=f9e146]:
+              - button "Make primary" [ref=f9e148] [cursor=pointer]
+              - button "" [ref=f9e150] [cursor=pointer]
+              - button "" [ref=f9e153] [cursor=pointer]
+              - button "" [ref=f9e156] [cursor=pointer]
+          - generic [ref=f9e159]:
+            - img "Playwright Test Gadget" [ref=f9e160]
+            - generic "test-img-3.jpg" [ref=f9e161]
+            - generic [ref=f9e162]:
+              - button "Make primary" [ref=f9e164] [cursor=pointer]
+              - button "" [ref=f9e166] [cursor=pointer]
+              - generic [ref=f9e168]:
+                - button "" [disabled]
+              - button "" [ref=f9e170] [cursor=pointer]
+    - generic [ref=f9e172]: © 2026 al asusa Store · Built with PHP & Bootstrap.

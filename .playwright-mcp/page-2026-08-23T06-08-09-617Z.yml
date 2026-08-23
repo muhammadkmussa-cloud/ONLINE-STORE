@@ -1,0 +1,448 @@
+- generic [ref=f7e2]:
+  - complementary [ref=f7e3]:
+    - link " al asusa Store" [ref=f7e5] [cursor=pointer]:
+      - /url: /admin/dashboard.php
+      - generic [ref=f7e6]: 
+      - generic [ref=f7e8]: al asusa Store
+    - navigation [ref=f7e9]:
+      - generic [ref=f7e10]: Main
+      - link " Dashboard" [ref=f7e11] [cursor=pointer]:
+        - /url: /admin/dashboard.php
+        - generic [ref=f7e12]: 
+        - generic [ref=f7e13]: Dashboard
+      - link " View store " [ref=f7e14] [cursor=pointer]:
+        - /url: /
+        - generic [ref=f7e15]: 
+        - generic [ref=f7e16]: View store
+        - generic [ref=f7e17]: 
+      - generic [ref=f7e18]: E-commerce
+      - link " Orders 10" [ref=f7e19] [cursor=pointer]:
+        - /url: /admin/orders.php
+        - generic [ref=f7e20]: 
+        - generic [ref=f7e21]: Orders
+        - generic [ref=f7e22]: "10"
+      - link " Products" [ref=f7e23] [cursor=pointer]:
+        - /url: /admin/products.php
+        - generic [ref=f7e24]: 
+        - generic [ref=f7e25]: Products
+      - link " Categories" [ref=f7e26] [cursor=pointer]:
+        - /url: /admin/categories.php
+        - generic [ref=f7e27]: 
+        - generic [ref=f7e28]: Categories
+      - link " Reviews 12" [ref=f7e29] [cursor=pointer]:
+        - /url: /admin/reviews.php
+        - generic [ref=f7e30]: 
+        - generic [ref=f7e31]: Reviews
+        - generic [ref=f7e32]: "12"
+      - link " Activity log" [ref=f7e33] [cursor=pointer]:
+        - /url: /admin/activity.php
+        - generic [ref=f7e34]: 
+        - generic [ref=f7e35]: Activity log
+      - generic [ref=f7e36]: Operations
+      - link " Delivery drivers" [ref=f7e37] [cursor=pointer]:
+        - /url: /admin/drivers.php
+        - generic [ref=f7e38]: 
+        - generic [ref=f7e39]: Delivery drivers
+      - generic [ref=f7e40]: Account
+      - link " Profile" [ref=f7e41] [cursor=pointer]:
+        - /url: /admin/profile.php
+        - generic [ref=f7e42]: 
+        - generic [ref=f7e43]: Profile
+      - link " Settings" [ref=f7e44] [cursor=pointer]:
+        - /url: /admin/settings.php
+        - generic [ref=f7e45]: 
+        - generic [ref=f7e46]: Settings
+      - button " Logout" [ref=f7e48] [cursor=pointer]:
+        - generic [ref=f7e49]: 
+        - generic [ref=f7e50]: Logout
+  - main [ref=f7e51]:
+    - navigation [ref=f7e52]:
+      - text: 
+      - heading "Products" [level=1] [ref=f7e53]
+      - generic [ref=f7e54]:
+        - button "Toggle color theme" [ref=f7e55] [cursor=pointer]:
+          - generic [ref=f7e56]: 
+        - generic [ref=f7e57]:
+          - button "Store Admin" [ref=f7e58] [cursor=pointer]
+          - text:   
+    - generic [ref=f7e60]:
+      - alert [ref=f7e61]:
+        - text: Product created.
+        - button [ref=f7e62] [cursor=pointer]
+      - generic [ref=f7e65]:
+        - generic [ref=f7e66]:
+          - generic [ref=f7e67]: Search
+          - textbox "Name or SKU" [ref=f7e68]
+        - generic [ref=f7e69]:
+          - generic [ref=f7e70]: Category
+          - combobox [ref=f7e71]:
+            - option "All categories" [selected]
+            - option "Beauty & Health"
+            - option "Books"
+            - option "Electronics"
+            - option "Fashion"
+            - option "Groceries"
+            - option "Home & Kitchen"
+            - option "Sports & Fitness"
+            - option "Toys & Games"
+        - generic [ref=f7e72]:
+          - generic [ref=f7e73]: Status
+          - combobox [ref=f7e74]:
+            - option "All" [selected]
+            - option "Active"
+            - option "Inactive"
+            - option "Draft"
+        - generic [ref=f7e75]:
+          - generic [ref=f7e76]: Featured
+          - combobox [ref=f7e77]:
+            - option "Any" [selected]
+            - option "Featured"
+        - button " Filter" [ref=f7e79] [cursor=pointer]:
+          - generic [ref=f7e80]: 
+          - text: Filter
+      - generic [ref=f7e82]:
+        - generic [ref=f7e83]:
+          - heading "65 products" [level=5] [ref=f7e84]
+          - link " Add product" [ref=f7e85] [cursor=pointer]:
+            - /url: /admin/product_form.php
+            - generic [ref=f7e86]: 
+            - text: Add product
+        - table [ref=f7e88]:
+          - rowgroup [ref=f7e89]:
+            - row [ref=f7e90]:
+              - columnheader [ref=f7e91]
+              - columnheader "Product" [ref=f7e92]
+              - columnheader "SKU" [ref=f7e93]
+              - columnheader "Category" [ref=f7e94]
+              - columnheader "Price" [ref=f7e95]
+              - columnheader "Stock" [ref=f7e96]
+              - columnheader "Status" [ref=f7e97]
+              - columnheader "Actions" [ref=f7e98]
+          - rowgroup [ref=f7e99]:
+            - row [ref=f7e100]:
+              - cell [ref=f7e101]
+              - cell "Playwright Test Gadget  playwright-test-gadget" [ref=f7e102]:
+                - generic [ref=f7e103]:
+                  - text: Playwright Test Gadget
+                  - generic "Featured" [ref=f7e104]: 
+                - code [ref=f7e106]: playwright-test-gadget
+              - cell [ref=f7e107]:
+                - code [ref=f7e108]: PW-TEST-001
+              - cell "Electronics" [ref=f7e109]
+              - cell "ksh 3,999.99 ksh 4,999.99" [ref=f7e110]
+              - cell "25" [ref=f7e111]
+              - cell "active" [ref=f7e113]
+              - cell [ref=f7e115]:
+                - link "" [ref=f7e116] [cursor=pointer]:
+                  - /url: /admin/product_form.php?id=65
+                - button "" [ref=f7e119] [cursor=pointer]
+            - row [ref=f7e121]:
+              - cell [ref=f7e122]
+              - cell "Extra Virgin Olive Oil 1L extra-virgin-olive-oil-1l" [ref=f7e123]:
+                - generic [ref=f7e124]: Extra Virgin Olive Oil 1L
+                - code [ref=f7e126]: extra-virgin-olive-oil-1l
+              - cell [ref=f7e127]:
+                - code [ref=f7e128]: GRO-0064
+              - cell "Groceries" [ref=f7e129]
+              - cell "ksh 1,600.00" [ref=f7e130]
+              - cell "54" [ref=f7e131]
+              - cell "draft" [ref=f7e133]
+              - cell [ref=f7e135]:
+                - link "" [ref=f7e136] [cursor=pointer]:
+                  - /url: /admin/product_form.php?id=64
+                - button "" [ref=f7e139] [cursor=pointer]
+            - row [ref=f7e141]:
+              - cell [ref=f7e142]
+              - cell "Plush Teddy Bear XL  plush-teddy-bear-xl" [ref=f7e143]:
+                - generic [ref=f7e144]:
+                  - text: Plush Teddy Bear XL
+                  - generic "Featured" [ref=f7e145]: 
+                - code [ref=f7e147]: plush-teddy-bear-xl
+              - cell [ref=f7e148]:
+                - code [ref=f7e149]: TOY-0056
+              - cell "Toys & Games" [ref=f7e150]
+              - cell "ksh 1,500.00" [ref=f7e151]
+              - cell "9" [ref=f7e152]
+              - cell "active" [ref=f7e154]
+              - cell [ref=f7e156]:
+                - link "" [ref=f7e157] [cursor=pointer]:
+                  - /url: /admin/product_form.php?id=56
+                - button "" [ref=f7e160] [cursor=pointer]
+            - row [ref=f7e162]:
+              - cell [ref=f7e163]
+              - cell "Building Blocks Set 500pcs building-blocks-set-500pcs" [ref=f7e164]:
+                - generic [ref=f7e165]: Building Blocks Set 500pcs
+                - code [ref=f7e167]: building-blocks-set-500pcs
+              - cell [ref=f7e168]:
+                - code [ref=f7e169]: TOY-0053
+              - cell "Toys & Games" [ref=f7e170]
+              - cell "ksh 2,800.00" [ref=f7e171]
+              - cell "Out" [ref=f7e172]
+              - cell "inactive" [ref=f7e174]
+              - cell [ref=f7e176]:
+                - link "" [ref=f7e177] [cursor=pointer]:
+                  - /url: /admin/product_form.php?id=53
+                - button "" [ref=f7e180] [cursor=pointer]
+            - row [ref=f7e182]:
+              - cell [ref=f7e183]
+              - cell "Remote Control Racing Car remote-control-racing-car" [ref=f7e184]:
+                - generic [ref=f7e185]: Remote Control Racing Car
+                - code [ref=f7e187]: remote-control-racing-car
+              - cell [ref=f7e188]:
+                - code [ref=f7e189]: TOY-0054
+              - cell "Toys & Games" [ref=f7e190]
+              - cell "ksh 2,999.00 ksh 3,500.00" [ref=f7e191]
+              - cell "87" [ref=f7e192]
+              - cell "active" [ref=f7e194]
+              - cell [ref=f7e196]:
+                - link "" [ref=f7e197] [cursor=pointer]:
+                  - /url: /admin/product_form.php?id=54
+                - button "" [ref=f7e200] [cursor=pointer]
+            - row [ref=f7e202]:
+              - cell [ref=f7e203]
+              - cell "Family Board Game Classic family-board-game-classic" [ref=f7e204]:
+                - generic [ref=f7e205]: Family Board Game Classic
+                - code [ref=f7e207]: family-board-game-classic
+              - cell [ref=f7e208]:
+                - code [ref=f7e209]: TOY-0055
+              - cell "Toys & Games" [ref=f7e210]
+              - cell "ksh 1,900.00" [ref=f7e211]
+              - cell "66" [ref=f7e212]
+              - cell "active" [ref=f7e214]
+              - cell [ref=f7e216]:
+                - link "" [ref=f7e217] [cursor=pointer]:
+                  - /url: /admin/product_form.php?id=55
+                - button "" [ref=f7e220] [cursor=pointer]
+            - row [ref=f7e222]:
+              - cell [ref=f7e223]
+              - cell "Puzzle 1000 Pieces Landscape puzzle-1000-pieces-landscape" [ref=f7e224]:
+                - generic [ref=f7e225]: Puzzle 1000 Pieces Landscape
+                - code [ref=f7e227]: puzzle-1000-pieces-landscape
+              - cell [ref=f7e228]:
+                - code [ref=f7e229]: TOY-0057
+              - cell "Toys & Games" [ref=f7e230]
+              - cell "ksh 1,100.00" [ref=f7e231]
+              - cell "16" [ref=f7e232]
+              - cell "active" [ref=f7e234]
+              - cell [ref=f7e236]:
+                - link "" [ref=f7e237] [cursor=pointer]:
+                  - /url: /admin/product_form.php?id=57
+                - button "" [ref=f7e240] [cursor=pointer]
+            - row [ref=f7e242]:
+              - cell [ref=f7e243]
+              - cell "Educational STEM Robot Kit educational-stem-robot-kit" [ref=f7e244]:
+                - generic [ref=f7e245]: Educational STEM Robot Kit
+                - code [ref=f7e247]: educational-stem-robot-kit
+              - cell [ref=f7e248]:
+                - code [ref=f7e249]: TOY-0058
+              - cell "Toys & Games" [ref=f7e250]
+              - cell "ksh 5,600.00" [ref=f7e251]
+              - cell "37" [ref=f7e252]
+              - cell "draft" [ref=f7e254]
+              - cell [ref=f7e256]:
+                - link "" [ref=f7e257] [cursor=pointer]:
+                  - /url: /admin/product_form.php?id=58
+                - button "" [ref=f7e260] [cursor=pointer]
+            - row [ref=f7e262]:
+              - cell [ref=f7e263]
+              - cell "Premium Arabica Coffee Beans 1kg premium-arabica-coffee-beans-1kg" [ref=f7e264]:
+                - generic [ref=f7e265]: Premium Arabica Coffee Beans 1kg
+                - code [ref=f7e267]: premium-arabica-coffee-beans-1kg
+              - cell [ref=f7e268]:
+                - code [ref=f7e269]: GRO-0059
+              - cell "Groceries" [ref=f7e270]
+              - cell "ksh 1,750.00" [ref=f7e271]
+              - cell "27" [ref=f7e272]
+              - cell "inactive" [ref=f7e274]
+              - cell [ref=f7e276]:
+                - link "" [ref=f7e277] [cursor=pointer]:
+                  - /url: /admin/product_form.php?id=59
+                - button "" [ref=f7e280] [cursor=pointer]
+            - row [ref=f7e282]:
+              - cell [ref=f7e283]
+              - cell "Organic Honey Jar 500g organic-honey-jar-500g" [ref=f7e284]:
+                - generic [ref=f7e285]: Organic Honey Jar 500g
+                - code [ref=f7e287]: organic-honey-jar-500g
+              - cell [ref=f7e288]:
+                - code [ref=f7e289]: GRO-0060
+              - cell "Groceries" [ref=f7e290]
+              - cell "ksh 850.00" [ref=f7e291]
+              - cell "93" [ref=f7e292]
+              - cell "active" [ref=f7e294]
+              - cell [ref=f7e296]:
+                - link "" [ref=f7e297] [cursor=pointer]:
+                  - /url: /admin/product_form.php?id=60
+                - button "" [ref=f7e300] [cursor=pointer]
+            - row [ref=f7e302]:
+              - cell [ref=f7e303]
+              - cell "Mixed Nuts Tray 400g mixed-nuts-tray-400g" [ref=f7e304]:
+                - generic [ref=f7e305]: Mixed Nuts Tray 400g
+                - code [ref=f7e307]: mixed-nuts-tray-400g
+              - cell [ref=f7e308]:
+                - code [ref=f7e309]: GRO-0061
+              - cell "Groceries" [ref=f7e310]
+              - cell "ksh 950.00" [ref=f7e311]
+              - cell "26" [ref=f7e312]
+              - cell "active" [ref=f7e314]
+              - cell [ref=f7e316]:
+                - link "" [ref=f7e317] [cursor=pointer]:
+                  - /url: /admin/product_form.php?id=61
+                - button "" [ref=f7e320] [cursor=pointer]
+            - row [ref=f7e322]:
+              - cell [ref=f7e323]
+              - cell "Dark Chocolate Box 250g dark-chocolate-box-250g" [ref=f7e324]:
+                - generic [ref=f7e325]: Dark Chocolate Box 250g
+                - code [ref=f7e327]: dark-chocolate-box-250g
+              - cell [ref=f7e328]:
+                - code [ref=f7e329]: GRO-0062
+              - cell "Groceries" [ref=f7e330]
+              - cell "ksh 700.00" [ref=f7e331]
+              - cell "74" [ref=f7e332]
+              - cell "active" [ref=f7e334]
+              - cell [ref=f7e336]:
+                - link "" [ref=f7e337] [cursor=pointer]:
+                  - /url: /admin/product_form.php?id=62
+                - button "" [ref=f7e340] [cursor=pointer]
+            - row [ref=f7e342]:
+              - cell [ref=f7e343]
+              - cell "Green Tea Bags Pack of 100  green-tea-bags-pack-of-100" [ref=f7e344]:
+                - generic [ref=f7e345]:
+                  - text: Green Tea Bags Pack of 100
+                  - generic "Featured" [ref=f7e346]: 
+                - code [ref=f7e348]: green-tea-bags-pack-of-100
+              - cell [ref=f7e349]:
+                - code [ref=f7e350]: GRO-0063
+              - cell "Groceries" [ref=f7e351]
+              - cell "ksh 600.00" [ref=f7e352]
+              - cell "22" [ref=f7e353]
+              - cell "active" [ref=f7e355]
+              - cell [ref=f7e357]:
+                - link "" [ref=f7e358] [cursor=pointer]:
+                  - /url: /admin/product_form.php?id=63
+                - button "" [ref=f7e361] [cursor=pointer]
+            - row [ref=f7e363]:
+              - cell [ref=f7e364]
+              - cell "Business Strategy Handbook business-strategy-handbook" [ref=f7e365]:
+                - generic [ref=f7e366]: Business Strategy Handbook
+                - code [ref=f7e368]: business-strategy-handbook
+              - cell [ref=f7e369]:
+                - code [ref=f7e370]: BOO-0050
+              - cell "Books" [ref=f7e371]
+              - cell "ksh 1,499.00 ksh 1,850.00" [ref=f7e372]
+              - cell "78" [ref=f7e373]
+              - cell "active" [ref=f7e375]
+              - cell [ref=f7e377]:
+                - link "" [ref=f7e378] [cursor=pointer]:
+                  - /url: /admin/product_form.php?id=50
+                - button "" [ref=f7e381] [cursor=pointer]
+            - row [ref=f7e383]:
+              - cell [ref=f7e384]
+              - cell "Camping Tent 4-Person camping-tent-4-person" [ref=f7e385]:
+                - generic [ref=f7e386]: Camping Tent 4-Person
+                - code [ref=f7e388]: camping-tent-4-person
+              - cell [ref=f7e389]:
+                - code [ref=f7e390]: SPO-0044
+              - cell "Sports & Fitness" [ref=f7e391]
+              - cell "ksh 7,499.00 ksh 8,700.00" [ref=f7e392]
+              - cell "9" [ref=f7e393]
+              - cell "active" [ref=f7e395]
+              - cell [ref=f7e397]:
+                - link "" [ref=f7e398] [cursor=pointer]:
+                  - /url: /admin/product_form.php?id=44
+                - button "" [ref=f7e401] [cursor=pointer]
+            - row [ref=f7e403]:
+              - cell [ref=f7e404]
+              - cell "Jump Rope Weighted Speed jump-rope-weighted-speed" [ref=f7e405]:
+                - generic [ref=f7e406]: Jump Rope Weighted Speed
+                - code [ref=f7e408]: jump-rope-weighted-speed
+              - cell [ref=f7e409]:
+                - code [ref=f7e410]: SPO-0045
+              - cell "Sports & Fitness" [ref=f7e411]
+              - cell "ksh 800.00" [ref=f7e412]
+              - cell "7" [ref=f7e413]
+              - cell "active" [ref=f7e415]
+              - cell [ref=f7e417]:
+                - link "" [ref=f7e418] [cursor=pointer]:
+                  - /url: /admin/product_form.php?id=45
+                - button "" [ref=f7e421] [cursor=pointer]
+            - row [ref=f7e423]:
+              - cell [ref=f7e424]
+              - cell "Cycling Water Bottle 750ml cycling-water-bottle-750ml" [ref=f7e425]:
+                - generic [ref=f7e426]: Cycling Water Bottle 750ml
+                - code [ref=f7e428]: cycling-water-bottle-750ml
+              - cell [ref=f7e429]:
+                - code [ref=f7e430]: SPO-0046
+              - cell "Sports & Fitness" [ref=f7e431]
+              - cell "ksh 650.00" [ref=f7e432]
+              - cell "63" [ref=f7e433]
+              - cell "draft" [ref=f7e435]
+              - cell [ref=f7e437]:
+                - link "" [ref=f7e438] [cursor=pointer]:
+                  - /url: /admin/product_form.php?id=46
+                - button "" [ref=f7e441] [cursor=pointer]
+            - row [ref=f7e443]:
+              - cell [ref=f7e444]
+              - cell "The Great Adventure Novel the-great-adventure-novel" [ref=f7e445]:
+                - generic [ref=f7e446]: The Great Adventure Novel
+                - code [ref=f7e448]: the-great-adventure-novel
+              - cell [ref=f7e449]:
+                - code [ref=f7e450]: BOO-0047
+              - cell "Books" [ref=f7e451]
+              - cell "ksh 950.00" [ref=f7e452]
+              - cell "17" [ref=f7e453]
+              - cell "inactive" [ref=f7e455]
+              - cell [ref=f7e457]:
+                - link "" [ref=f7e458] [cursor=pointer]:
+                  - /url: /admin/product_form.php?id=47
+                - button "" [ref=f7e461] [cursor=pointer]
+            - row [ref=f7e463]:
+              - cell [ref=f7e464]
+              - cell "Children's Illustrated Atlas  children-s-illustrated-atlas" [ref=f7e465]:
+                - generic [ref=f7e466]:
+                  - text: Children's Illustrated Atlas
+                  - generic "Featured" [ref=f7e467]: 
+                - code [ref=f7e469]: children-s-illustrated-atlas
+              - cell [ref=f7e470]:
+                - code [ref=f7e471]: BOO-0049
+              - cell "Books" [ref=f7e472]
+              - cell "ksh 1,400.00" [ref=f7e473]
+              - cell "13" [ref=f7e474]
+              - cell "active" [ref=f7e476]
+              - cell [ref=f7e478]:
+                - link "" [ref=f7e479] [cursor=pointer]:
+                  - /url: /admin/product_form.php?id=49
+                - button "" [ref=f7e482] [cursor=pointer]
+            - row [ref=f7e484]:
+              - cell [ref=f7e485]
+              - 'cell "Cookbook: East African Kitchen cookbook-east-african-kitchen" [ref=f7e486]':
+                - generic [ref=f7e487]: "Cookbook: East African Kitchen"
+                - code [ref=f7e489]: cookbook-east-african-kitchen
+              - cell [ref=f7e490]:
+                - code [ref=f7e491]: BOO-0048
+              - cell "Books" [ref=f7e492]
+              - cell "ksh 1,650.00" [ref=f7e493]
+              - cell "44" [ref=f7e494]
+              - cell "active" [ref=f7e496]
+              - cell [ref=f7e498]:
+                - link "" [ref=f7e499] [cursor=pointer]:
+                  - /url: /admin/product_form.php?id=48
+                - button "" [ref=f7e502] [cursor=pointer]
+        - navigation [ref=f7e504]:
+          - list [ref=f7e505]:
+            - listitem [ref=f7e506]:
+              - link "1" [ref=f7e507] [cursor=pointer]:
+                - /url: "?page=1"
+            - listitem [ref=f7e508]:
+              - link "2" [ref=f7e509] [cursor=pointer]:
+                - /url: "?page=2"
+            - listitem [ref=f7e510]:
+              - link "3" [ref=f7e511] [cursor=pointer]:
+                - /url: "?page=3"
+            - listitem [ref=f7e512]:
+              - link "4" [ref=f7e513] [cursor=pointer]:
+                - /url: "?page=4"
+            - listitem [ref=f7e514]:
+              - link "Next" [ref=f7e515] [cursor=pointer]:
+                - /url: "?page=2"
+                - text: »
+    - generic [ref=f7e516]: © 2026 al asusa Store · Built with PHP & Bootstrap.

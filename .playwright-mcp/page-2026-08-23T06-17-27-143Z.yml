@@ -1,0 +1,210 @@
+- generic [ref=f36e2]:
+  - complementary [ref=f36e3]:
+    - link " al asusa Store" [ref=f36e5] [cursor=pointer]:
+      - /url: /admin/dashboard.php
+      - generic [ref=f36e6]: 
+      - generic [ref=f36e8]: al asusa Store
+    - navigation [ref=f36e9]:
+      - generic [ref=f36e10]: Main
+      - link " Dashboard" [ref=f36e11] [cursor=pointer]:
+        - /url: /admin/dashboard.php
+        - generic [ref=f36e12]: 
+        - generic [ref=f36e13]: Dashboard
+      - link " View store " [ref=f36e14] [cursor=pointer]:
+        - /url: /
+        - generic [ref=f36e15]: 
+        - generic [ref=f36e16]: View store
+        - generic [ref=f36e17]: 
+      - generic [ref=f36e18]: E-commerce
+      - link " Orders 10" [ref=f36e19] [cursor=pointer]:
+        - /url: /admin/orders.php
+        - generic [ref=f36e20]: 
+        - generic [ref=f36e21]: Orders
+        - generic [ref=f36e22]: "10"
+      - link " Products" [ref=f36e23] [cursor=pointer]:
+        - /url: /admin/products.php
+        - generic [ref=f36e24]: 
+        - generic [ref=f36e25]: Products
+      - link " Categories" [ref=f36e26] [cursor=pointer]:
+        - /url: /admin/categories.php
+        - generic [ref=f36e27]: 
+        - generic [ref=f36e28]: Categories
+      - link " Reviews 12" [ref=f36e29] [cursor=pointer]:
+        - /url: /admin/reviews.php
+        - generic [ref=f36e30]: 
+        - generic [ref=f36e31]: Reviews
+        - generic [ref=f36e32]: "12"
+      - link " Activity log" [ref=f36e33] [cursor=pointer]:
+        - /url: /admin/activity.php
+        - generic [ref=f36e34]: 
+        - generic [ref=f36e35]: Activity log
+      - generic [ref=f36e36]: Operations
+      - link " Delivery drivers" [ref=f36e37] [cursor=pointer]:
+        - /url: /admin/drivers.php
+        - generic [ref=f36e38]: 
+        - generic [ref=f36e39]: Delivery drivers
+      - generic [ref=f36e40]: Account
+      - link " Profile" [ref=f36e41] [cursor=pointer]:
+        - /url: /admin/profile.php
+        - generic [ref=f36e42]: 
+        - generic [ref=f36e43]: Profile
+      - link " Settings" [ref=f36e44] [cursor=pointer]:
+        - /url: /admin/settings.php
+        - generic [ref=f36e45]: 
+        - generic [ref=f36e46]: Settings
+      - button " Logout" [ref=f36e48] [cursor=pointer]:
+        - generic [ref=f36e49]: 
+        - generic [ref=f36e50]: Logout
+  - main [ref=f36e51]:
+    - navigation [ref=f36e52]:
+      - text: 
+      - heading "Order ORD-202608-0016" [level=1] [ref=f36e53]
+      - generic [ref=f36e54]:
+        - button "Toggle color theme" [ref=f36e55] [cursor=pointer]:
+          - generic [ref=f36e56]: 
+        - generic [ref=f36e57]:
+          - button "Store Admin" [ref=f36e58] [cursor=pointer]
+          - text:   
+    - generic [ref=f36e60]:
+      - generic [ref=f36e61]:
+        - generic [ref=f36e62]:
+          - link " Back to orders" [ref=f36e63] [cursor=pointer]:
+            - /url: /admin/orders.php
+            - generic [ref=f36e64]: 
+            - text: Back to orders
+          - heading "Order ORD-202608-0016 Pending" [level=3] [ref=f36e65]:
+            - text: Order ORD-202608-0016
+            - generic [ref=f36e66]: Pending
+          - generic [ref=f36e67]: Placed Aug 23, 2026 at 12:39 am
+        - generic [ref=f36e68]:
+          - combobox [ref=f36e69]:
+            - option "Pending" [selected]
+            - option "Processing"
+            - option "Shipped"
+            - option "Completed"
+            - option "Cancelled"
+          - button " Update status" [ref=f36e70] [cursor=pointer]:
+            - generic [ref=f36e71]: 
+            - text: Update status
+      - generic [ref=f36e72]:
+        - generic [ref=f36e75]:
+          - heading "Customer" [level=6] [ref=f36e76]
+          - generic [ref=f36e77]: Yusuf Ibrahim
+          - link "yusuf@example.com" [ref=f36e79] [cursor=pointer]:
+            - /url: mailto:yusuf@example.com
+          - link "+254729000111" [ref=f36e81] [cursor=pointer]:
+            - /url: tel:+254729000111
+        - generic [ref=f36e84]:
+          - heading "Shipping" [level=6] [ref=f36e85]
+          - generic [ref=f36e86]: 140 Tom Mboya Street
+          - generic [ref=f36e87]: Nakuru 20100
+          - generic [ref=f36e88]: Kenya
+        - generic [ref=f36e91]:
+          - heading "Payment" [level=6] [ref=f36e92]
+          - generic [ref=f36e93]: Payment on Delivery
+          - generic [ref=f36e94]: Last updated Aug 23, 2026 12:39 am
+      - generic [ref=f36e96]:
+        - generic [ref=f36e97]:
+          - generic [ref=f36e98]:
+            - heading " Fulfillment" [level=5] [ref=f36e99]:
+              - generic [ref=f36e100]: 
+              - text: Fulfillment
+            - generic [ref=f36e101]: Delivery
+          - generic [ref=f36e102]:
+            - generic [ref=f36e103]: 
+            - text: Delivery
+        - separator [ref=f36e104]
+        - generic [ref=f36e105]:
+          - generic [ref=f36e106]:
+            - generic [ref=f36e107]: Assigned delivery driver
+            - combobox [ref=f36e108]:
+              - option "Unassigned" [selected]
+              - option "Alice Wambui · +254799887766"
+              - option "Fatuma Hassan · +254700333444"
+              - option "John Otieno · +254700111222"
+              - option "Peter Kimani · +254700555666"
+          - button " Save assignment" [ref=f36e110] [cursor=pointer]:
+            - generic [ref=f36e111]: 
+            - text: Save assignment
+        - separator [ref=f36e112]
+        - generic [ref=f36e113]:
+          - generic [ref=f36e114]:
+            - generic [ref=f36e115]: 
+            - text: "Shared location:"
+            - code [ref=f36e116]: "-1.208869, 36.928154"
+          - generic [ref=f36e117]: Accuracy ±26 m
+          - link " Open map" [ref=f36e118] [cursor=pointer]:
+            - /url: https://www.openstreetmap.org/?mlat=-1.2088685&mlon=36.9281538#map=16/-1.2088685/36.9281538
+            - generic [ref=f36e119]: 
+            - text: Open map
+        - generic [ref=f36e120]: Captured Aug 23, 2026 00:39. Coordinates are visible to administrators only.
+        - separator [ref=f36e121]
+        - generic [ref=f36e122]:
+          - generic [ref=f36e123]:
+            - text: Pricing mode
+            - strong [ref=f36e124]: Distance
+          - generic [ref=f36e125]:
+            - text: Distance
+            - strong [ref=f36e126]: 15.00 km actual
+          - generic [ref=f36e127]:
+            - text: Rate / km
+            - strong [ref=f36e128]: ksh 2.50
+          - generic [ref=f36e129]:
+            - text: Final delivery fee
+            - strong [ref=f36e130]: ksh 37.50
+          - generic [ref=f36e131]:
+            - text: Calculated
+            - strong [ref=f36e132]: Aug 23, 2026 05:59
+      - generic [ref=f36e134]:
+        - heading "Items" [level=5] [ref=f36e135]
+        - table [ref=f36e137]:
+          - rowgroup [ref=f36e138]:
+            - row [ref=f36e139]:
+              - columnheader [ref=f36e140]
+              - columnheader "Product" [ref=f36e141]
+              - columnheader "SKU" [ref=f36e142]
+              - columnheader "Unit price" [ref=f36e143]
+              - columnheader "Qty" [ref=f36e144]
+              - columnheader "Subtotal" [ref=f36e145]
+          - rowgroup [ref=f36e146]:
+            - row [ref=f36e147]:
+              - cell [ref=f36e148]
+              - cell [ref=f36e149]:
+                - link "Stainless Steel Cookware Set 8pc" [ref=f36e150] [cursor=pointer]:
+                  - /url: /admin/product_form.php?id=21
+              - cell [ref=f36e151]:
+                - code [ref=f36e152]: HOM-0021
+              - cell "ksh 8,499.00" [ref=f36e153]
+              - cell "3" [ref=f36e154]
+              - cell "ksh 25,497.00" [ref=f36e155]
+            - row [ref=f36e156]:
+              - cell [ref=f36e157]
+              - cell [ref=f36e158]:
+                - link "LED Floor Lamp Modern" [ref=f36e159] [cursor=pointer]:
+                  - /url: /admin/product_form.php?id=26
+              - cell [ref=f36e160]:
+                - code [ref=f36e161]: HOM-0026
+              - cell "ksh 3,400.00" [ref=f36e162]
+              - cell "2" [ref=f36e163]
+              - cell "ksh 6,800.00" [ref=f36e164]
+            - row [ref=f36e165]:
+              - cell [ref=f36e166]
+              - cell [ref=f36e167]:
+                - link "Green Tea Bags Pack of 100" [ref=f36e168] [cursor=pointer]:
+                  - /url: /admin/product_form.php?id=63
+              - cell [ref=f36e169]:
+                - code [ref=f36e170]: GRO-0063
+              - cell "ksh 600.00" [ref=f36e171]
+              - cell "3" [ref=f36e172]
+              - cell "ksh 1,800.00" [ref=f36e173]
+          - rowgroup [ref=f36e174]:
+            - row [ref=f36e175]:
+              - cell "Subtotal" [ref=f36e176]
+              - cell "ksh 34,097.00" [ref=f36e177]
+            - row [ref=f36e178]:
+              - cell "Shipping" [ref=f36e179]
+              - cell "ksh 37.50" [ref=f36e180]
+            - row [ref=f36e181]:
+              - cell "Total" [ref=f36e182]
+              - cell "ksh 34,134.50" [ref=f36e183]
+    - generic [ref=f36e184]: © 2026 al asusa Store · Built with PHP & Bootstrap.

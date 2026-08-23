@@ -3,7 +3,8 @@
     <footer class="app-footer">
       <small>
         &copy; <?= date('Y') ?> <?= e(setting('site_name', APP_NAME)) ?> ·
-        Built with PHP &amp; Bootstrap.
+        Built with PHP &amp; Bootstrap ·
+        Powered by <a href="https://roidigitalsolutions.com" target="_blank" rel="noopener noreferrer">ROI Digital Solutions</a>.
       </small>
     </footer>
   </main><!-- /.app-main -->

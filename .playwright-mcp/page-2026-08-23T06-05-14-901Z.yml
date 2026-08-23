@@ -1,0 +1,324 @@
+- generic [ref=f2e2]:
+  - complementary [ref=f2e3]:
+    - link " al asusa" [ref=f2e5] [cursor=pointer]:
+      - /url: /admin/dashboard.php
+      - generic [ref=f2e6]: 
+      - generic [ref=f2e8]: al asusa
+    - navigation [ref=f2e9]:
+      - generic [ref=f2e10]: Main
+      - link " Dashboard" [ref=f2e11] [cursor=pointer]:
+        - /url: /admin/dashboard.php
+        - generic [ref=f2e12]: 
+        - generic [ref=f2e13]: Dashboard
+      - link " View store " [ref=f2e14] [cursor=pointer]:
+        - /url: /
+        - generic [ref=f2e15]: 
+        - generic [ref=f2e16]: View store
+        - generic [ref=f2e17]: 
+      - generic [ref=f2e18]: E-commerce
+      - link " Orders 10" [ref=f2e19] [cursor=pointer]:
+        - /url: /admin/orders.php
+        - generic [ref=f2e20]: 
+        - generic [ref=f2e21]: Orders
+        - generic [ref=f2e22]: "10"
+      - link " Products" [ref=f2e23] [cursor=pointer]:
+        - /url: /admin/products.php
+        - generic [ref=f2e24]: 
+        - generic [ref=f2e25]: Products
+      - link " Categories" [ref=f2e26] [cursor=pointer]:
+        - /url: /admin/categories.php
+        - generic [ref=f2e27]: 
+        - generic [ref=f2e28]: Categories
+      - link " Reviews 12" [ref=f2e29] [cursor=pointer]:
+        - /url: /admin/reviews.php
+        - generic [ref=f2e30]: 
+        - generic [ref=f2e31]: Reviews
+        - generic [ref=f2e32]: "12"
+      - link " Activity log" [ref=f2e33] [cursor=pointer]:
+        - /url: /admin/activity.php
+        - generic [ref=f2e34]: 
+        - generic [ref=f2e35]: Activity log
+      - generic [ref=f2e36]: Operations
+      - link " Delivery drivers" [ref=f2e37] [cursor=pointer]:
+        - /url: /admin/drivers.php
+        - generic [ref=f2e38]: 
+        - generic [ref=f2e39]: Delivery drivers
+      - generic [ref=f2e40]: Account
+      - link " Profile" [ref=f2e41] [cursor=pointer]:
+        - /url: /admin/profile.php
+        - generic [ref=f2e42]: 
+        - generic [ref=f2e43]: Profile
+      - link " Settings" [ref=f2e44] [cursor=pointer]:
+        - /url: /admin/settings.php
+        - generic [ref=f2e45]: 
+        - generic [ref=f2e46]: Settings
+      - button " Logout" [ref=f2e48] [cursor=pointer]:
+        - generic [ref=f2e49]: 
+        - generic [ref=f2e50]: Logout
+  - main [ref=f2e51]:
+    - navigation [ref=f2e52]:
+      - text: 
+      - heading "Dashboard" [level=1] [ref=f2e53]
+      - generic [ref=f2e54]:
+        - button "Toggle color theme" [ref=f2e55] [cursor=pointer]:
+          - generic [ref=f2e56]: 
+        - generic [ref=f2e57]:
+          - button "Store Admin" [ref=f2e58] [cursor=pointer]
+          - text:   
+    - generic [ref=f2e60]:
+      - alert [ref=f2e61]:
+        - text: Welcome back, Store Admin!
+        - button [ref=f2e62] [cursor=pointer]
+      - generic [ref=f2e63]:
+        - link " Products 64" [ref=f2e65] [cursor=pointer]:
+          - /url: /admin/products.php
+          - generic [ref=f2e66]:
+            - generic [ref=f2e67]: 
+            - generic [ref=f2e69]:
+              - paragraph [ref=f2e70]: Products
+              - paragraph [ref=f2e71]: "64"
+        - link " Active products 43" [ref=f2e73] [cursor=pointer]:
+          - /url: /admin/products.php?status=active
+          - generic [ref=f2e74]:
+            - generic [ref=f2e75]: 
+            - generic [ref=f2e77]:
+              - paragraph [ref=f2e78]: Active products
+              - paragraph [ref=f2e79]: "43"
+        - link " Categories 8" [ref=f2e81] [cursor=pointer]:
+          - /url: /admin/categories.php
+          - generic [ref=f2e82]:
+            - generic [ref=f2e83]: 
+            - generic [ref=f2e85]:
+              - paragraph [ref=f2e86]: Categories
+              - paragraph [ref=f2e87]: "8"
+        - link " Out of stock 1" [ref=f2e89] [cursor=pointer]:
+          - /url: /admin/products.php?status=active
+          - generic [ref=f2e90]:
+            - generic [ref=f2e91]: 
+            - generic [ref=f2e93]:
+              - paragraph [ref=f2e94]: Out of stock
+              - paragraph [ref=f2e95]: "1"
+      - generic [ref=f2e96]:
+        - link " Total orders 40" [ref=f2e98] [cursor=pointer]:
+          - /url: /admin/orders.php
+          - generic [ref=f2e99]:
+            - generic [ref=f2e100]: 
+            - generic [ref=f2e102]:
+              - paragraph [ref=f2e103]: Total orders
+              - paragraph [ref=f2e104]: "40"
+        - link " Pending orders 10" [ref=f2e106] [cursor=pointer]:
+          - /url: /admin/orders.php?status=pending
+          - generic [ref=f2e107]:
+            - generic [ref=f2e108]: 
+            - generic [ref=f2e110]:
+              - paragraph [ref=f2e111]: Pending orders
+              - paragraph [ref=f2e112]: "10"
+        - generic [ref=f2e114]:
+          - generic [ref=f2e115]: 
+          - generic [ref=f2e117]:
+            - paragraph [ref=f2e118]: Total revenue
+            - paragraph [ref=f2e119]: ksh 720,098.50
+        - generic [ref=f2e121]:
+          - generic [ref=f2e122]: 
+          - generic [ref=f2e124]:
+            - paragraph [ref=f2e125]: Revenue today
+            - paragraph [ref=f2e126]: ksh 34,134.50
+      - generic [ref=f2e127]:
+        - generic [ref=f2e129]:
+          - generic [ref=f2e130]: 
+          - generic [ref=f2e132]:
+            - paragraph [ref=f2e133]: Featured products
+            - paragraph [ref=f2e134]: "9"
+        - generic [ref=f2e136]:
+          - generic [ref=f2e137]: 
+          - generic [ref=f2e139]:
+            - paragraph [ref=f2e140]: Inventory value
+            - paragraph [ref=f2e141]: ksh 12,299,608.00
+      - generic [ref=f2e142]:
+        - generic [ref=f2e146]:
+          - heading "Products added (last 7 days)" [level=5] [ref=f2e147]
+          - generic [ref=f2e148]: 64 total
+        - generic [ref=f2e150]:
+          - generic [ref=f2e152]:
+            - heading " Low stock alerts" [level=5] [ref=f2e153]:
+              - generic [ref=f2e154]: 
+              - text: Low stock alerts
+            - list [ref=f2e155]:
+              - listitem [ref=f2e156]:
+                - link "Smart Fitness Watch Pro" [ref=f2e158] [cursor=pointer]:
+                  - /url: /admin/product_form.php?id=2
+                - generic [ref=f2e159]: 1 left
+              - listitem [ref=f2e160]:
+                - link "Wool Blend Winter Scarf" [ref=f2e162] [cursor=pointer]:
+                  - /url: /admin/product_form.php?id=15
+                - generic [ref=f2e163]: 2 left
+              - listitem [ref=f2e164]:
+                - link "Beard Trimmer Precision" [ref=f2e166] [cursor=pointer]:
+                  - /url: /admin/product_form.php?id=38
+                - generic [ref=f2e167]: 3 left
+              - listitem [ref=f2e168]:
+                - link "Women's Summer Maxi Dress" [ref=f2e170] [cursor=pointer]:
+                  - /url: /admin/product_form.php?id=12
+                - generic [ref=f2e171]: 7 left
+              - listitem [ref=f2e172]:
+                - link "Jump Rope Weighted Speed" [ref=f2e174] [cursor=pointer]:
+                  - /url: /admin/product_form.php?id=45
+                - generic [ref=f2e175]: 7 left
+          - generic [ref=f2e177]:
+            - generic [ref=f2e178]:
+              - heading "Recent products" [level=5] [ref=f2e179]
+              - link "View all" [ref=f2e180] [cursor=pointer]:
+                - /url: /admin/products.php
+            - list [ref=f2e181]:
+              - listitem [ref=f2e182]:
+                - generic [ref=f2e183]:
+                  - link "Extra Virgin Olive Oil 1L" [ref=f2e184] [cursor=pointer]:
+                    - /url: /admin/product_form.php?id=64
+                  - text: Groceries
+                - generic [ref=f2e185]:
+                  - generic [ref=f2e186]: ksh 1,600.00
+                  - text: 54 in stock
+              - listitem [ref=f2e187]:
+                - generic [ref=f2e188]:
+                  - link "Puzzle 1000 Pieces Landscape" [ref=f2e189] [cursor=pointer]:
+                    - /url: /admin/product_form.php?id=57
+                  - text: Toys & Games
+                - generic [ref=f2e190]:
+                  - generic [ref=f2e191]: ksh 1,100.00
+                  - text: 16 in stock
+              - listitem [ref=f2e192]:
+                - generic [ref=f2e193]:
+                  - link "Family Board Game Classic" [ref=f2e194] [cursor=pointer]:
+                    - /url: /admin/product_form.php?id=55
+                  - text: Toys & Games
+                - generic [ref=f2e195]:
+                  - generic [ref=f2e196]: ksh 1,900.00
+                  - text: 66 in stock
+              - listitem [ref=f2e197]:
+                - generic [ref=f2e198]:
+                  - link "Building Blocks Set 500pcs" [ref=f2e199] [cursor=pointer]:
+                    - /url: /admin/product_form.php?id=53
+                  - text: Toys & Games
+                - generic [ref=f2e200]:
+                  - generic [ref=f2e201]: ksh 2,800.00
+                  - text: 0 in stock
+              - listitem [ref=f2e202]:
+                - generic [ref=f2e203]:
+                  - link "Remote Control Racing Car" [ref=f2e204] [cursor=pointer]:
+                    - /url: /admin/product_form.php?id=54
+                  - text: Toys & Games
+                - generic [ref=f2e205]:
+                  - generic [ref=f2e206]: ksh 2,999.00
+                  - text: 87 in stock
+        - generic [ref=f2e209]:
+          - generic [ref=f2e210]:
+            - heading " Recent orders" [level=5] [ref=f2e211]:
+              - generic [ref=f2e212]: 
+              - text: Recent orders
+            - link "View all" [ref=f2e213] [cursor=pointer]:
+              - /url: /admin/orders.php
+          - table [ref=f2e215]:
+            - rowgroup [ref=f2e216]:
+              - row [ref=f2e217]:
+                - 'columnheader "Order #" [ref=f2e218]'
+                - columnheader "Customer" [ref=f2e219]
+                - columnheader "Total" [ref=f2e220]
+                - columnheader "Status" [ref=f2e221]
+                - columnheader "Placed" [ref=f2e222]
+                - columnheader [ref=f2e223]
+            - rowgroup [ref=f2e224]:
+              - row [ref=f2e225]:
+                - cell [ref=f2e226]:
+                  - link "ORD-202608-0016" [ref=f2e227] [cursor=pointer]:
+                    - /url: /admin/order_view.php?id=16
+                - cell "Yusuf Ibrahim" [ref=f2e228]
+                - cell "ksh 34,134.50" [ref=f2e229]
+                - cell "Pending" [ref=f2e230]
+                - cell "Aug 23, 12:39 am" [ref=f2e232]
+                - cell [ref=f2e233]:
+                  - link "" [ref=f2e234] [cursor=pointer]:
+                    - /url: /admin/order_view.php?id=16
+              - row [ref=f2e236]:
+                - cell [ref=f2e237]:
+                  - link "ORD-202608-0008" [ref=f2e238] [cursor=pointer]:
+                    - /url: /admin/order_view.php?id=8
+                - cell "Yusuf Ibrahim" [ref=f2e239]
+                - cell "ksh 59,842.50" [ref=f2e240]
+                - cell "Shipped" [ref=f2e241]
+                - cell "Aug 22, 3:58 am" [ref=f2e243]
+                - cell [ref=f2e244]:
+                  - link "" [ref=f2e245] [cursor=pointer]:
+                    - /url: /admin/order_view.php?id=8
+              - row [ref=f2e247]:
+                - cell [ref=f2e248]:
+                  - link "ORD-202608-0014" [ref=f2e249] [cursor=pointer]:
+                    - /url: /admin/order_view.php?id=14
+                - cell "Kevin Omondi" [ref=f2e250]
+                - cell "ksh 15,445.00" [ref=f2e251]
+                - cell "Pending" [ref=f2e252]
+                - cell "Aug 20, 1:45 am" [ref=f2e254]
+                - cell [ref=f2e255]:
+                  - link "" [ref=f2e256] [cursor=pointer]:
+                    - /url: /admin/order_view.php?id=14
+              - row [ref=f2e258]:
+                - cell [ref=f2e259]:
+                  - link "ORD-202608-0007" [ref=f2e260] [cursor=pointer]:
+                    - /url: /admin/order_view.php?id=7
+                - cell "Nancy Achieng" [ref=f2e261]
+                - cell "ksh 3,652.50" [ref=f2e262]
+                - cell "Shipped" [ref=f2e263]
+                - cell "Aug 19, 5:37 am" [ref=f2e265]
+                - cell [ref=f2e266]:
+                  - link "" [ref=f2e267] [cursor=pointer]:
+                    - /url: /admin/order_view.php?id=7
+              - row [ref=f2e269]:
+                - cell [ref=f2e270]:
+                  - link "ORD-202608-0038" [ref=f2e271] [cursor=pointer]:
+                    - /url: /admin/order_view.php?id=38
+                - cell "Kevin Omondi" [ref=f2e272]
+                - cell "ksh 47,535.50" [ref=f2e273]
+                - cell "Completed" [ref=f2e274]
+                - cell "Aug 18, 8:01 pm" [ref=f2e276]
+                - cell [ref=f2e277]:
+                  - link "" [ref=f2e278] [cursor=pointer]:
+                    - /url: /admin/order_view.php?id=38
+              - row [ref=f2e280]:
+                - cell [ref=f2e281]:
+                  - link "ORD-202608-0013" [ref=f2e282] [cursor=pointer]:
+                    - /url: /admin/order_view.php?id=13
+                - cell "Zainab Mohamed" [ref=f2e283]
+                - cell "ksh 8,623.00" [ref=f2e284]
+                - cell "Cancelled" [ref=f2e285]
+                - cell "Aug 18, 6:07 pm" [ref=f2e287]
+                - cell [ref=f2e288]:
+                  - link "" [ref=f2e289] [cursor=pointer]:
+                    - /url: /admin/order_view.php?id=13
+        - generic [ref=f2e293]:
+          - generic [ref=f2e294]:
+            - heading "Recent product & category activity" [level=5] [ref=f2e295]
+            - link "View all" [ref=f2e296] [cursor=pointer]:
+              - /url: /admin/activity.php
+          - table [ref=f2e298]:
+            - rowgroup [ref=f2e299]:
+              - row [ref=f2e300]:
+                - columnheader "By" [ref=f2e301]
+                - columnheader "Action" [ref=f2e302]
+                - columnheader "Description" [ref=f2e303]
+                - columnheader "When" [ref=f2e304]
+            - rowgroup [ref=f2e305]:
+              - row [ref=f2e306]:
+                - cell "Store Admin" [ref=f2e307]
+                - cell "product.import" [ref=f2e308]
+                - cell "Imported demo catalogue" [ref=f2e310]
+                - cell "Aug 23, 2026 05:59" [ref=f2e311]
+              - row [ref=f2e312]:
+                - cell "Super Admin" [ref=f2e313]
+                - cell "category.delete" [ref=f2e314]
+                - cell "Deleted category ahmed" [ref=f2e316]
+                - cell "Aug 21, 2026 10:47" [ref=f2e317]
+              - row [ref=f2e318]:
+                - cell "Super Admin" [ref=f2e319]
+                - cell "category.create" [ref=f2e320]
+                - cell "Created category ahmed" [ref=f2e322]
+                - cell "Aug 21, 2026 10:46" [ref=f2e323]
+    - generic [ref=f2e324]: © 2026 al asusa · Built with PHP & Bootstrap.
