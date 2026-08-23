@@ -471,3 +471,20 @@ CREATE TABLE IF NOT EXISTS `order_delivery_distance_pricing` (
   CONSTRAINT `fk_delivery_distance_order`
       FOREIGN KEY (`order_id`) REFERENCES `orders`(`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ---------------------------------------------------------
+-- Migration: public order-tracking throttle
+-- Adds a per-IP ledger of failed tracking lookups so the public
+-- track.php endpoint can rate-limit (order-number, email) guessing
+-- the same way admin/driver logins are throttled. Mirrors the shape
+-- of `admin_login_attempts` minus the email column (probed emails
+-- are deliberately never stored).
+-- ---------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `tracking_attempts` (
+  `id`           BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `ip_address`   VARCHAR(45) DEFAULT NULL,
+  `successful`   TINYINT(1) NOT NULL DEFAULT 0,
+  `attempted_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_tracking_rate` (`ip_address`, `attempted_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

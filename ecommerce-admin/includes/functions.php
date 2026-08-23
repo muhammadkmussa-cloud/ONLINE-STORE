@@ -119,6 +119,40 @@ function auth_record_login_attempt(string $table, string $email, string $ip, boo
     }
 }
 
+/**
+ * Public order-tracking throttle: failed (order-number, email) lookups per
+ * IP within a rolling 15-minute window. Fails closed so a broken attempts
+ * table cannot reopen a brute-force window onto customer order data.
+ * Probed emails are never stored — the ledger is keyed on IP only.
+ */
+function tracking_rate_limited(string $ip, int $maxFailures = 20): bool
+{
+    try {
+        $stmt = db()->prepare(
+            'SELECT COUNT(*) FROM tracking_attempts
+             WHERE ip_address = :ip AND successful = 0
+               AND attempted_at >= DATE_SUB(UTC_TIMESTAMP(), INTERVAL 15 MINUTE)'
+        );
+        $stmt->execute([':ip' => substr($ip, 0, 45)]);
+        return (int)$stmt->fetchColumn() >= max(1, $maxFailures);
+    } catch (Throwable $e) {
+        error_log('Tracking throttle check failed: ' . $e->getMessage());
+        return true;
+    }
+}
+
+/** Record one public tracking lookup and prune anything older than two days. */
+function record_tracking_attempt(string $ip, bool $successful): void
+{
+    try {
+        db()->prepare('DELETE FROM tracking_attempts WHERE attempted_at < DATE_SUB(UTC_TIMESTAMP(), INTERVAL 2 DAY)')->execute();
+        db()->prepare('INSERT INTO tracking_attempts (ip_address, successful) VALUES (:ip, :successful)')
+            ->execute([':ip' => substr($ip, 0, 45), ':successful' => $successful ? 1 : 0]);
+    } catch (Throwable $e) {
+        error_log('Tracking attempt record failed: ' . $e->getMessage());
+    }
+}
+
 function url(string $path = ''): string
 {
     return BASE_URL . ltrim($path, '/');

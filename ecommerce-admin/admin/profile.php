@@ -48,7 +48,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['form'] ?? '') === 'profile
         } else {
             $tmp  = $_FILES['avatar']['tmp_name'];
             $size = (int) $_FILES['avatar']['size'];
-            $mime = function_exists('mime_content_type') ? mime_content_type($tmp) : null;
+            // Detect the real type from the file's bytes (finfo preferred)
+            // and require decodable dimensions — same pipeline as
+            // includes/product_images.php.
+            $mime = null;
+            if (function_exists('finfo_open')) {
+                $finfo = finfo_open(FILEINFO_MIME_TYPE);
+                $mime = $finfo ? finfo_file($finfo, $tmp) : null;
+                if ($finfo) finfo_close($finfo);
+            }
+            if (!$mime && function_exists('mime_content_type')) $mime = mime_content_type($tmp);
+            $dimensions = @getimagesize($tmp);
             $ok   = ['image/jpeg' => 'jpg', 'image/png' => 'png',
                      'image/gif'  => 'gif', 'image/webp' => 'webp'];
 
@@ -56,6 +66,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['form'] ?? '') === 'profile
                 $errors[] = 'Avatar must be JPG, PNG, GIF or WEBP (got: ' . e((string)$mime) . ').';
             } elseif ($size > 2 * 1024 * 1024) {
                 $errors[] = 'Avatar must be smaller than 2 MB.';
+            } elseif (!$dimensions || (int)$dimensions[0] < 1 || (int)$dimensions[1] < 1
+                     || (int)$dimensions[0] > 8000 || (int)$dimensions[1] > 8000) {
+                $errors[] = 'Avatar dimensions must be between 1 and 8000 pixels.';
             } else {
                 if (!is_dir(UPLOADS_PATH) && !@mkdir(UPLOADS_PATH, 0775, true)) {
                     $errors[] = 'Upload folder could not be created: ' . e(UPLOADS_PATH);

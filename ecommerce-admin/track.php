@@ -33,6 +33,15 @@ if ($orderNumber !== '' || $email !== '') {
         $errors[] = 'Please enter the email you used at checkout.';
     }
 
+    // Public endpoint: cap (order-number, email) guessing per connection
+    // before the lookup runs. Successful lookups do not count toward the
+    // limit, so legitimate customers are never locked out.
+    $clientIp = substr((string)($_SERVER['REMOTE_ADDR'] ?? ''), 0, 45);
+    if (!$errors && tracking_rate_limited($clientIp)) {
+        $errors[] = 'Too many tracking attempts from this connection. '
+                  . 'Please wait 15 minutes and try again.';
+    }
+
     if (!$errors) {
         $stmt = db()->prepare(
             "SELECT * FROM orders
@@ -102,6 +111,10 @@ if ($orderNumber !== '' || $email !== '') {
                 }
             }
         }
+
+        // Ledger one real lookup: only failures count toward the throttle.
+        // fetch() yields false on a miss, so cast rather than compare to null.
+        record_tracking_attempt($clientIp, (bool)$order);
     }
 }
 

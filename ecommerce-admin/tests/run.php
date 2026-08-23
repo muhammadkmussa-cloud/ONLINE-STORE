@@ -11,6 +11,13 @@
  */
 declare(strict_types=1);
 
+// CLI-only maintenance tool: .htaccess only guards Apache deployments, so
+// refuse web execution explicitly on every server stack.
+if (PHP_SAPI !== 'cli') {
+    http_response_code(404);
+    exit('Not found.');
+}
+
 $_SERVER['SCRIPT_NAME'] = '/tests/run.php';
 $_SERVER['REQUEST_METHOD'] = 'GET';
 $_SERVER['REMOTE_ADDR'] = '198.51.100.200';

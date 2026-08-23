@@ -20,8 +20,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if ($name === '') $errors[] = 'Driver name is required.';
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) $errors[] = 'A valid driver email is required.';
-        if ($id === 0 && strlen($password) < 8) $errors[] = 'New driver passwords must be at least 8 characters.';
-        if ($id > 0 && $password !== '' && strlen($password) < 8) $errors[] = 'Reset passwords must be at least 8 characters.';
+        if ($id === 0 && strlen($password) < 10) $errors[] = 'New driver passwords must be at least 10 characters.';
+        if ($id > 0 && $password !== '' && strlen($password) < 10) $errors[] = 'Reset passwords must be at least 10 characters.';
 
         if (!$errors) {
             $stmt = db()->prepare(
@@ -86,8 +86,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     } elseif ($action === 'reset_password') {
         $password = (string)($_POST['password'] ?? '');
-        if (strlen($password) < 8) {
-            $errors[] = 'Reset passwords must be at least 8 characters.';
+        if (strlen($password) < 10) {
+            $errors[] = 'Reset passwords must be at least 10 characters.';
         } else {
             $stmt = db()->prepare(
                 "SELECT email FROM users WHERE id = :id AND role = 'delivery_driver' LIMIT 1"
@@ -177,7 +177,7 @@ include __DIR__ . '/includes/header.php';
           <div class="mb-3"><label class="form-label">Name</label><input name="name" class="form-control" value="<?= e($editDriver['name']) ?>" required></div>
           <div class="mb-3"><label class="form-label">Email</label><input name="email" type="email" class="form-control" value="<?= e($editDriver['email']) ?>" required></div>
           <div class="mb-3"><label class="form-label">Phone</label><input name="phone" class="form-control" value="<?= e($editDriver['phone']) ?>"></div>
-          <div class="mb-3"><label class="form-label"><?= $editDriver['id'] ? 'New password (optional)' : 'Password' ?></label><input name="password" type="password" class="form-control" minlength="8" <?= $editDriver['id'] ? '' : 'required' ?> autocomplete="new-password"></div>
+          <div class="mb-3"><label class="form-label"><?= $editDriver['id'] ? 'New password (optional)' : 'Password' ?></label><input name="password" type="password" class="form-control" minlength="10" <?= $editDriver['id'] ? '' : 'required' ?> autocomplete="new-password"></div>
           <div class="mb-3"><label class="form-label">Status</label><select name="status" class="form-select"><option value="active" <?= $editDriver['status'] === 'active' ? 'selected' : '' ?>>Active</option><option value="inactive" <?= $editDriver['status'] === 'inactive' ? 'selected' : '' ?>>Disabled</option></select></div>
           <button class="btn btn-primary"><i class="bi bi-check2"></i> Save driver</button>
           <?php if ($editDriver['id']): ?><a href="<?= e(admin_url('drivers.php')) ?>" class="btn btn-link">Cancel</a><?php endif; ?>
@@ -209,7 +209,7 @@ include __DIR__ . '/includes/header.php';
             <td class="text-end text-nowrap">
               <a class="btn btn-sm btn-light" href="<?= e(admin_url('drivers.php?edit=' . (int)$driver['id'])) ?>"><i class="bi bi-pencil"></i></a>
               <form method="post" class="d-inline"><input type="hidden" name="_csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="toggle_status"><input type="hidden" name="id" value="<?= (int)$driver['id'] ?>"><button class="btn btn-sm btn-outline-<?= $driver['status'] === 'active' ? 'danger' : 'success' ?>" data-confirm="Change this driver account status?"><i class="bi bi-power"></i></button></form>
-              <details class="d-inline-block text-start"><summary class="btn btn-sm btn-outline-secondary"><i class="bi bi-key"></i></summary><form method="post" class="border rounded p-2 mt-1 bg-body position-absolute" style="z-index:5;right:1rem;min-width:220px"><input type="hidden" name="_csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="reset_password"><input type="hidden" name="id" value="<?= (int)$driver['id'] ?>"><input name="password" type="password" minlength="8" class="form-control form-control-sm mb-2" placeholder="New password" required><button class="btn btn-sm btn-warning w-100">Reset password</button></form></details>
+              <details class="d-inline-block text-start"><summary class="btn btn-sm btn-outline-secondary"><i class="bi bi-key"></i></summary><form method="post" class="border rounded p-2 mt-1 bg-body position-absolute" style="z-index:5;right:1rem;min-width:220px"><input type="hidden" name="_csrf" value="<?= e(csrf_token()) ?>"><input type="hidden" name="action" value="reset_password"><input type="hidden" name="id" value="<?= (int)$driver['id'] ?>"><input name="password" type="password" minlength="10" class="form-control form-control-sm mb-2" placeholder="New password" required><button class="btn btn-sm btn-warning w-100">Reset password</button></form></details>
             </td>
           </tr>
         <?php endforeach; ?>
