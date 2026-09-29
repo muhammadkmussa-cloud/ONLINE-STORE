@@ -1,7 +1,7 @@
 # Online Store
 
-<video src="./online-store-film.mp4" controls width="640"></video>
+https://github.com/muhammadkmussa-cloud/ONLINE-STORE/raw/main/online-store-film.mp4
 
-[raw-url link](https://github.com/muhammadkmussa-cloud/ONLINE-STORE/raw/main/online-store-film.mp4)
+[bare raw host](https://raw.githubusercontent.com/muhammadkmussa-cloud/ONLINE-STORE/main/online-store-film.mp4)
 
 ![Online Store project film](./online-store-film-poster.webp)
